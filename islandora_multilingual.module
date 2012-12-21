@@ -1,0 +1,271 @@
+<?php
+
+/**
+ * @file
+ * Module relating to the CEC_multilingual object model
+ */
+
+/** 
+ * Implements hook_menu()
+ */
+
+function islandora_multilingual_menu() {
+  $items = array();
+
+  $items['admin/islandora/multilingual'] = array(
+    'title' => 'Multilanguage',
+    'description' => t('Administer the multilingual module'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('islandora_multilingual_admin_form'),
+    'file' => 'admin/multilingual.admin.inc',
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['islandora/object/%islandora_object/add'] = array(
+    'title' => 'Add',
+    'page callback' => 'islandora_basic_collection_ingest_action',
+    'page arguments' => array(2),
+    'file' => 'islandora_basic_collection.module',
+    'file path' => drupal_get_path('module', 'islandora_basic_collection'),
+    'type' => MENU_LOCAL_TASK,
+    'access callback' => 'modified_collection_add_access',
+    'access arguments' => array(2),
+  );
+  return $items;
+}
+
+/** 
+ * Implements hook_variable_info()
+ */
+function islandora_multilingual_variable_info() {
+  $variable = array();
+  $variable['islandora_languages'] = array(
+    'title' => t('Islandora languages'),
+    'description' => t('Languages in which Islandora objects should be sought. This is the upper-case version of the language code in Drupal.'),
+    'type' => 'string',
+  );
+
+}
+
+/**
+ * Implements hook_theme().
+ */
+function islandora_multilingual_theme($existing, $type, $theme, $path) {
+  return array(
+    'islandora_multilingual' => array(
+      'file' => 'theme/islandora_multilingual.theme.inc',
+      'template' => 'theme/islandora-multilingual',
+      'pattern' => 'islandora_multilingual__',
+      'variables' => array('islandora_object' => NULL),
+    ),
+    'language_links' => array(
+      'file' => 'theme/language_links.theme.inc',
+      'template' => 'theme/language-links',
+      'variables' => array('lang_array' => array()),
+    ),
+  );
+}
+
+/**
+ * Implements hook_CMODEL_PID_islandora_view_object().
+ * FIXME this might be a good place to pass the language string...
+ */
+function islandora_multilingual_islandora_CEC_multilingual_islandora_view_object($object, $page_number, $page_size) {
+  $output = theme('islandora_multilingual', array('islandora_object' => $object));
+  return array('' => $output);
+}
+
+/**
+ * Implements hook_islandora_ingest_steps().
+ * though actually hook_islandora_CMODEL_PID_islandora_ingest_steps().
+ */
+function islandora_multilingual_islandora_CEC_multilingual_islandora_ingest_steps(array $configuration) {
+  return array(
+    'islandora_multlingual_pdf_file_upload' => array(
+      'weight' => 10,
+      'type' => 'form',
+      'form_id' => 'islandora_multilingual_pdf_upload_form',
+      'module' => 'islandora_multilingual',
+      'file' => 'includes/multilingual_upload.form.inc',
+    )
+  );
+}
+
+/** 
+ * Implements hook_CMODEL_PID_islandora_ingest_post_ingest()
+ *
+ * calls function to create multiple MODS datastreams on ingest. Then they can all be edited.
+ */
+function islandora_multilingual_islandora_CEC_multilingual_islandora_ingest_post_ingest($object) {
+  module_load_include('inc', 'islandora_multilingual', 'includes/Multilingual');
+  multilingual_create_multiple_metadatastreams($object);
+  $dsids = multilingual_get_OBJ_dsids($object);
+  foreach ($dsids as $dsid) {
+    islandora_multilingual_create_all_derivatives($object, $dsid);
+  }
+}
+
+
+function multilingual_get_OBJ_dsids(FedoraObject $object) {
+  
+  $dsids = array('OBJ-EN');
+  return $dsids;
+}
+/**
+ * Implements hook_form_FORM_ID_alter()
+ *
+ * points to our submit and validate methods instead of the islandora ones.
+ * This only affects it when called as the "edit" form, not the "ingest" form.
+ */
+//FIXME This won't work, the form isn't the same.
+function islandora_multilingual_form_islandora_content_model_forms_get_edit_form_alter(&$form, &$form_state, $form_id) {
+  if (isset($form['content_model_pid'])) {
+    if ($form['content_model_pid']['#value'] == 'islandora:CEC_multilingual') {
+      $form['#submit'] = array('islandora_multilingual_edit_form_submit');
+      $form['#validate'] = array('islandora_multilingual_edit_form_validate');
+    }
+  }
+}
+
+//FIXME this probably has different code now. See where validation code lives.
+/**
+ * Edit form validation.
+ * 
+ * @param $form
+ * @param $form_state
+ */
+function islandora_multilingual_edit_form_validate($form, &$form_state) {
+  if ($form_state['storage']['xml']) {
+    if ($form_state['storage']['step'] == 1) {
+      $form_state['storage']['step']++;
+      $form_state['rebuild'] = TRUE;
+    }
+  }
+
+  // Handle uploaded files.
+  $arr = array();
+  /*
+  if (!empty($types_allowed)) {
+    foreach ($types_allowed as $type) {
+      $arr[] = $mimetype->getExtension($type);
+    }
+  }
+  */
+
+  if (!empty($_FILES['files']['name']['ingest-file-location'])) {
+    $file_object = file_save_upload('ingest-file-location', array('file_validate_extensions' => $arr));
+
+    if ($file_object) {
+      $form_state['values']['ingest-file-location'] = $file_object->uri;
+      $form_state['values']['ingest-file-location-id'] = $file_object->fid;
+    }
+  }
+  $form_state['rebuild'] = FALSE;
+
+}
+
+
+//FIXME again, this submit code needs to be way different. 
+function islandora_multilingual_edit_form_submit($form, &$form_state) {
+    // Only submit the form if the submit button was pressed (other buttons may be used for AJAX)
+  if (!$form_state['submitted']) {
+    return;
+  }
+
+  module_load_include('inc', 'xml_form_api', 'XMLForm');
+  module_load_include('inc', 'islandora_content_model_forms', 'includes/ingest.form');
+  global $base_url, $user;
+  
+  $pid = $form_state['values']['pid'];
+  $dsid = $form_state['values']['dsid'];
+  $form_name = $form_state['values']['forms'];
+  $content_model_pid = $form_state['values']['content_model_pid'];
+  $label_field = islandora_content_model_get_title_field($content_model_pid, $form_name);
+  eval('$label = $form_state[\'values\']' . $label_field . ';'); // change the fedora label.
+  
+  $xml_form = new XMLForm($form_state);
+  $doc = $xml_form->submit($form, $form_state);
+  $document = $doc->document; // create an xml document out of the form??
+  
+  $object = islandora_object_load($pid);
+  $object->label = $label;
+  
+  $xml_ds = $object[$dsid];
+  $xml_ds->setContentFromString($document->saveXML());
+  
+  // transform to dc
+  $transform = islandora_content_model_get_transform($content_model_pid, $form_name);
+  $dc_doc = islandora_content_model_forms_transform_document($transform, $document, $object);
+  $dc_ds = $object['DC'];
+  $dc_ds->setContentFromString($dc_doc->saveXML());
+  
+
+  /*** Added by Rosie to let the edit form upload a file ***/
+  $uploaded_file = isset($form_state['values']['ingest-file-location']) && trim($form_state['values']['ingest-file-location']) !== '';
+  $ingest_file_location = $uploaded_file ? $form_state['values']['ingest-file-location'] : " NOPE";
+  $file_dsid = isset($form_state['values']['ingest-file-datastream-id']) ? trim($form_state['values']['ingest-file-datastream-id']) : 'OBJ';
+  if (isset($ingest_file_location)) {
+    $ingest_file_location = is_array($ingest_file_location) ? $ingest_file_location : array($file_dsid => $ingest_file_location);
+  }
+
+  islandora_content_model_forms_ingest_files($ingest_file_location, $object);
+  
+/*
+  $string = '<test><title>Boo!' . $ingest_file_location .'</title>'. $form_state['values']['ingest-file-location'] . '</test>';	
+  if (!isset($object['test'])) {
+    $ds = $object->constructDatastream('test', 'X');
+    $ds->label = 'My Test Datastream';
+    $ds->setContentFromString($string);
+    $ds->mimetype = 'text/xml';
+    $object->ingestDatastream($ds);
+  }
+  else {
+    $object['test']->setContentFromString($string);
+  }
+
+*/
+  $form_state['storage'] = NULL;
+  $form_state['redirect'] = 'islandora/object/' . $pid;
+ 
+  if (isset($form_state['values']['ingest-file-location-id'])) {
+    file_delete(file_load($form_state['values']['ingest-file-location-id']));
+  }
+
+}
+
+/**
+ * Implements hook_form_alter()
+ */
+function islandora_multilingual_form_alter($form, &$form_state, $form_id) {
+  //dprint_r($form_id);
+  //dprint_r($form_state);
+}
+
+
+/* Find a better place for this
+ * 
+ * Creates a shortcut add object link to the item menu for any object with CM islandora:collection
+ * 
+ */
+
+function modified_collection_add_access($object = NULL) { 
+  if (!is_object($object) || !user_access(FEDORA_INGEST)) {
+    return FALSE;
+  }
+  // Reduce need to validate to once per object, as this if often called more
+  // than once per request.
+  static $checked_objects = array();
+  if (!in_array($object->id, array_keys($checked_objects))) {
+    module_load_include('inc', 'islandora', 'includes/ingest.form');
+    // Assume ingest is denied.
+    $checked_objects[$object->id] = FALSE;
+    $configuration = islandora_basic_collection_get_ingest_configuration($object);
+    if ($configuration) {
+      $steps = islandora_ingest_get_approximate_steps($configuration);
+      // Only if one or more steps are defined should we ingest.
+      $checked_objects[$object->id] = count($steps) > 0;
+    }
+  }
+  return $checked_objects[$object->id];
+}

@@ -1,0 +1,57 @@
+
+<mods xmlns="http://www.loc.gov/mods/v3" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <titleInfo>
+    <title></title>
+    <subTitle></subTitle>
+  </titleInfo>
+  <name type="personal">
+    <namePart></namePart>
+  </name>
+  <originInfo>
+    <publisher>Commission for Environmental Cooperation</publisher>
+    <place>
+      <placeTerm>Montreal</placeTerm>
+    </place>
+    <dateIssued encoding="iso8601" keyDate="yes"></dateIssued>
+  </originInfo>
+  <typeOfResource>text</typeOfResource>
+  <genre authority="local" type="class"></genre>
+  <language>
+    <languageTerm authority="iso639-2b" authorityURL="http://id.loc.gov/vocabulary/iso639-2" type="code" valueURL="http://id.loc.gov/vocabulary/iso639-2/spa/">spa</languageTerm>
+    <languageTerm authority="iso639-2b" authorityURL="http://id.loc.gov/vocabulary/iso639-2" type="text" valueURL="http://id.loc.gov/vocabulary/iso639-2/spa">Español</languageTerm>
+  </language>
+  <subject authority="local" displayLabel="Keywords">
+    <topic></topic>
+  </subject>
+  <subject authority="local" displayLabel="Keywords">
+    <topic></topic>
+  </subject>
+  <subject authority="local" displayLabel="Keywords">
+    <topic></topic>
+  </subject>
+  <subject authority="local" displayLabel="Keywords">
+    <topic></topic>
+  </subject>
+  <subject authority="local" displayLabel="Keywords">
+    <topic></topic>
+  </subject>
+  <physicalDescription>
+    <form authority="marcform">electronic</form>
+    <extent></extent>
+    <internetMediaType>application/pdf</internetMediaType>
+    <note displayLabel="File size"></note>
+  </physicalDescription>
+  <abstract displayLabel="Description"></abstract>
+  <location>
+    <url></url>
+  </location>
+  <identifier displayLabel="ISBN-13" type="isbn"></identifier>
+  <identifier displayLabel="ISBN-13" type="isbn"></identifier>
+  <identifier displayLabel="Baseline CMS Storage ID" type="local"></identifier>
+  <identifier displayLabel="Fedora PID" type="local"></identifier>
+  <recordInfo>
+    <languageOfCataloging authority="iso639-2b" authorityURL="http://id.loc.gov/vocabulary/iso639-2" type="code" valueURL="http://id.loc.gov/vocabulary/iso639-2/spa">spa</languageOfCataloging>
+    <languageOfCataloging authority="iso639-2b" authorityURL="http://id.loc.gov/vocabulary/iso639-2" type="text" valueURL="http://id.loc.gov/vocabulary/iso639-2/spa">Español</languageOfCataloging>
+  </recordInfo>
+</mods>
+

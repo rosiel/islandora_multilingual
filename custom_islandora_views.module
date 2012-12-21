@@ -1,0 +1,76 @@
+<?php
+
+/**
+ * @file
+ * Customization module for Islandora's object display
+ */
+
+/**
+ * Implements hook_CMODEL_PID_islandora_view_object().
+ */
+function custom_islandora_views_islandora_CEC_multilingual_islandora_view_object($fedora_object) {
+  $output = theme('view_object_details', array('islandora_object' => $fedora_object));
+  return array('' => $output);
+}
+
+
+function custom_islandora_views_islandora_get_types() {
+  // should return true for ISLANDORA_EDIT_HOOK in its get_types function
+  // and ISLANDORA_VIEW_HOOK
+  $types = array();
+  $types['islandora:CEC_multilingual'][ISLANDORA_VIEW_HOOK] = TRUE;
+  $types['islandora:CEC_multilingual'][ISLANDORA_EDIT_HOOK] = TRUE;
+  $types['info:fedora/islandora:sp_strict_pdf'][ISLANDORA_VIEW_HOOK] = TRUE;
+  return $types;
+
+}
+
+/**
+ * Implements hook_theme().
+ */
+function custom_islandora_views_theme() {
+  // set path
+  $path = drupal_get_path('module', 'custom_islandora_views');
+
+  return array(
+    // grid results display
+    'language_links' => array(
+      'path' => $path . '/theme',
+      'file' => 'language_links.theme.inc',
+      'template' => 'language-links',
+      'variables' => array('content' => array()),
+    ),
+    'view_object_details' => array(
+      'path' => $path . '/theme',
+      'file' => 'view_object_details.theme.inc',
+      'template' => 'view-object-details',
+      'variables' => array('islandora_object' => NULL, 'parent_collections' => NULL),
+    ),
+  );
+}
+
+/**
+ * Implements hook_help().
+ *
+ * @param type $path
+ * @param type $arg
+ * @return type
+ */
+function custom_islandora_views_help($path, $arg) {
+
+  switch ($path) {
+    case 'admin/help#custom_islandora_views':
+      return t("When 'Sample Solr Configuration Settings' is selected from the configuration drop-down in the<br />
+        !page the following settings will be used.
+        <ul>
+        <li>Module - islandora_islandora_views</l1>
+        <li>File - IslandoraSolrResultsTable.inc</l1>
+        <li>Class - IslandoraSolrResultsTable</l1>
+        <li>Method - displayResults</l1>
+        </ul>
+        ", array('!page' => l("Islandora_solr_search configuration page", 'admin/islandora/search/islandora_solr'))
+      );
+  }
+}
+
+

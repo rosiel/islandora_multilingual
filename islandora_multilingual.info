@@ -1,0 +1,6 @@
+name = Multilingual Islandora
+description = allows one object to contain a document in multiple languages
+dependencies[] = islandora
+package = Islandora Customizations
+version = 7.x-1.0
+core = 7.x
