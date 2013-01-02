@@ -31,7 +31,17 @@ function islandora_multilingual_pdf_upload_form(array $form, array &$form_state)
         'file_validate_extensions' => $extensions,
         'file_validate_size' => array($upload_size * 1024 * 1024), // Assume its specified in MB
       ),
-    )
+    ),
+    'language' => array(
+      '#title' => t('Language of file'),
+      '#type' => 'select',
+      '#options' => array(
+        'EN' => t('English'),
+	'ES' => t('Spanish'),
+	'FR' => t('French')
+      ),
+      '#default' => 'EN', 
+    ),
   );
 }
 
@@ -45,12 +55,14 @@ function islandora_multilingual_pdf_upload_form(array $form, array &$form_state)
  */
 function islandora_multilingual_pdf_upload_form_submit(array $form, array &$form_state) {
   $object = $form_state['islandora']['objects'][0];
-  if (empty($object['OBJ-EN'])) {
-    $ds = $object->constructDatastream('OBJ-EN', 'M');
+  $suffix = isset($form_state['values']['language']) ? '-' . $form_state['values']['language'] : '';
+  $dsid = 'OBJ' . $suffix;
+  if (empty($object[$dsid])) {
+    $ds = $object->constructDatastream($dsid, 'M');
     $object->ingestDatastream($ds);
   }
   else {
-    $ds = $object['OBJ-EN'];
+    $ds = $object[$dsid];
   }
   $file = file_load($form_state['values']['file']);
   $path = drupal_realpath($file->uri);

@@ -31,7 +31,12 @@ function chooseLanguage(&$document, $datastream = 'ds.OBJ-') {
     return $suffix;
   }
 }
-
+/* 
+ * This function, called on post-ingest for objects with CM CEC_multilingual, 
+ * assumes that the FedoraObject $object has only one
+ * MODS datastream. Any other MODS datastreams will be cleared.
+ * 2012-12-31 now writes M instead of X datastreams.
+ */
 
 function multilingual_create_multiple_metadatastreams($object) {
  //$languages = array('EN', 'ES', 'FR');
@@ -57,7 +62,7 @@ function multilingual_create_multiple_metadatastreams($object) {
      $dsid = 'MODS-' . $language;
      $ds_content_file = "$module_path/xml/template_MODS_$language.xml";
 
-     $ds = $object->constructDatastream($dsid, 'X');
+     $ds = $object->constructDatastream($dsid, 'M');
      $ds->label = $dsid;
      $ds->mimeType = 'text/xml';
      $ds->setContentFromString(file_get_contents($ds_content_file));
