@@ -1,6 +1,7 @@
 name = Custom Islandora Object Views
 description = Customized display profiles for Fedora objects
 dependencies[] = islandora
+dependencies[] = islandora_solr
 package = Islandora Customizations
 version = 7.x-1.0
 core = 7.x

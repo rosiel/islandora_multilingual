@@ -73,7 +73,7 @@ function islandora_multilingual_theme($existing, $type, $theme, $path) {
  */
 function islandora_multilingual_islandora_CEC_multilingual_islandora_view_object($object, $page_number, $page_size) {
   $output = theme('islandora_multilingual', array('islandora_object' => $object));
-  return array('' => $output);
+  return array('Multilingual View' => $output);
 }
 
 /**
