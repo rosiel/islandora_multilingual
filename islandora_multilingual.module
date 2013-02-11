@@ -64,6 +64,11 @@ function islandora_multilingual_theme($existing, $type, $theme, $path) {
       'template' => 'theme/language-links',
       'variables' => array('lang_array' => array()),
     ),
+    'display_title' => array(
+      'file' => 'theme/display_title.theme.inc',
+      'template' => 'theme/display-title',
+      'variables' => array('title' => '', 'subTitle' => ''),
+    ),
   );
 }
 
@@ -234,13 +239,6 @@ function islandora_multilingual_edit_form_submit($form, &$form_state) {
 
 }
 
-/**
- * Implements hook_form_alter()
- */
-function islandora_multilingual_form_alter($form, &$form_state, $form_id) {
-  //dprint_r($form_id);
-  //dprint_r($form_state);
-}
 
 
 /* Find a better place for this
@@ -268,4 +266,44 @@ function modified_collection_add_access($object = NULL) {
     }
   }
   return $checked_objects[$object->id];
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter()
+ *
+ * points to our submit and validate methods instead of the islandora ones.
+ * This only affects it when called as the "edit" form, not the "ingest" form.
+ */
+function islandora_multilingual_form_alter(&$form, $form_state, $form_id) {
+ if ($form_id == 'xml_form_builder_edit_datastream_form') {
+   array_unshift($form['#validate'], 'islandora_multilingual_edit_datastream_form_validate');
+ }
+ if ($form_id == 'xml_form_builder_ingest_form') {
+   array_unshift($form['#validate'], 'islandora_multilingual_edit_datastream_form_validate');
+ }
+
+}
+
+function islandora_multilingual_edit_datastream_form_validate(array &$form, array &$form_state) {
+  foreach ($form_state['values']['Keywords'] as $keyword => $value) {
+    if ($value == '0') {
+      $root = $form_state['storage']['objective_form_storage']['root'];
+      unset($root->children['Keywords']->children[$keyword]);
+      
+      //unset($form_state['values']['Keywords'][$keyword]);
+      //unset($form['Keywords'][$keyword]);
+      //echo 'boo';
+    }
+  }
+  //dpm($form);
+  //form_set_error('error');
+
+}
+
+function islandora_multilingual_block_view_islandora_solr_simple_alter(&$data, $block) {
+  //watchdog('rosie', dprint_r($data['content']));
+  $data['content']['simple']['advanced'] = array(
+    '#title' => t('Advanced Search'),
+    '#markup' => l(t('advanced search'), 'node/16', array()),
+  );
 }

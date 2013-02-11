@@ -32,14 +32,17 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
   $variables['dc_array'] = isset($dc_object) ? $dc_object->as_formatted_array() : array(); 
   // end dublin core
 
-/*
   $variables['islandora_object_label'] = $islandora_object->label;
     // set title 
+  $title_string = theme('display_title', array('title' => $islandora_object->label));
+  drupal_set_title($title_string);
+
+  /*
   if (isset($islandora_object->label)) {
     drupal_set_title($islandora_object->label);
   }
-*/
-  
+  */
+
   $variables['theme_hook_suggestions'][] = 'islandora_pdf__' . str_replace(':', '_', $islandora_object->id); //maybe keep this not fixme
 
   $variables['parent_collections'] = islandora_get_parents_from_rels_ext($islandora_object); 
@@ -182,6 +185,8 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
 
     }
   }
+
+  drupal_set_title(theme('display_title', array('title' => $metadata['mods_title_ms_']['value'], 'subTitle' => isset ($metadata['mods_subTitle_ms']) ? $metadata['mods_subTitle_ms']['value'] : '')));
   
   // create list of available objects
   $availability_list = theme('language_links', array('lang_array' => $OBJ_langs));

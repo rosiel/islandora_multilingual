@@ -2,23 +2,23 @@
 
 /**
  * @file
- * This is the template file for the pdf object
+ * This is the template file for the multilingual object
  *
  * @TODO: Add documentation about this file and the available variables
  */
 ?>
 
 <div class="islandora-multilingual-object islandora">
-  <div class="islandora-multilingual-content-wrapper clearfix">
+  <div class	="islandora-multilingual-content-wrapper clearfix">
     <?php if (isset($islandora_content)): ?>
-      <div class="islandora-pdf-content">
+      <div class="islandora-multilingual-content">
         <?php print $islandora_content; ?>
       </div>
       <?php print $islandora_view_link; ?>
       <?php print ' | '; ?>
       <?php print $islandora_download_link; ?>
     <?php endif; ?>
-  <div class="islandora-pdf-sidebar">
+  <div class="islandora-multilingual-sidebar">
     <?php if (!empty($dc_array['dc:description']['value'])): ?>
       <h2><?php print $dc_array['dc:description']['label']; ?></h2>
       <p><?php print $dc_array['dc:description']['value']; ?></p>
@@ -35,10 +35,10 @@
     <?php endif; ?>
   </div>
   </div>
-  <fieldset class="collapsible collapsed islandora-pdf-metadata">
-  <legend><span class="fieldset-legend"><?php print t('Extended details'); ?></span></legend>
+  <fieldset class="collapsible collapsed islandora-multilingual-metadata">
+  <legend><span class="fieldset-legend"><?php print t('Additional information'); ?></span></legend>
     <div class="fieldset-wrapper">
-      <dl class="islandora-inline-metadata islandora-pdf-fields">
+      <dl class="islandora-inline-metadata islandora-multilingual-fields">
         <?php $row_field = 0; ?>
         <?php foreach ($mods_array as $key => $value): ?>
           <dt class="<?php print $value['class']; ?><?php print $row_field == 0 ? ' first' : ''; ?>">
