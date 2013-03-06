@@ -2,33 +2,32 @@
 
 /**
 * Returns the best available datastream suffix
-* @param FedoraObject $document OR a "document" subsection of a returned Solr array.
+* @param FedoraObject $object OR a "document" subsection of a returned Solr array.
 * @param string $datastream
 * returns string $suffix
 */
 
-function chooseLanguage(&$document, $datastream = 'ds.OBJ-') {
+function chooseLanguage(&$object, $datastream = 'ds.OBJ-') {
   global $language;
   $drupal_lang_suffix = strtoupper($language->language);
-  //$suffix_backup = array('EN', 'ES', 'FR');
-  $suffix_backup = explode(',', variable_get('islandora_languages', 'EN, '));
+  $suffix_backup = explode(',', variable_get('islandora_languages', 'EN, ES, FR'));
 
-  if (isset($document[$datastream . $drupal_lang_suffix])) {
+  if (isset($object[$datastream . $drupal_lang_suffix])) {
     $suffix = $drupal_lang_suffix;
   }
   else {
     foreach ($suffix_backup as $test_suffix) {
-      if (isset($document[$datastream . $test_suffix])) {
+      if (isset($object[$datastream . $test_suffix])) {
         $suffix = $test_suffix;
         break;
       }
     }
   }
   if (!isset($suffix)) {
-    return '';
+    return Null;
   }
   else{
-    return $suffix;
+    return $datastream . $suffix;
   }
 }
 /* 
@@ -36,20 +35,14 @@ function chooseLanguage(&$document, $datastream = 'ds.OBJ-') {
  * assumes that the FedoraObject $object has only one
  * MODS datastream. Any other MODS datastreams will be cleared.
  * 2012-12-31 now writes M instead of X datastreams.
+ * 2013-02-11 now takes two arguments, the second being the datastream, and 
  */
 
-function multilingual_create_multiple_metadatastreams($object) {
- //$languages = array('EN', 'ES', 'FR');
+function multilingual_create_multiple_metadatastreams($object, $datastream) {
  $languages = explode(',', variable_get('islandora_languages', 'EN, '));
  $dsid_orig = NULL;
  $module_path = drupal_get_path('module', 'islandora_multilingual');
-
- foreach ($languages as $language) {  // detect language of uploaded MODS stream.
-   if (isset($object['MODS-' . $language])) {
-     $dsid_orig = $language;
-     break;
-   }
- } 
+ $dsid_orig = $datastream->id;
  if (!isset($dsid_orig)) {
    drupal_set_message(t('No MODS datastream was set.'));
    return "";
@@ -60,13 +53,14 @@ function multilingual_create_multiple_metadatastreams($object) {
  foreach ($languages_to_set as $language) {
    try {
      $dsid = 'MODS-' . $language;
-     $ds_content_file = "$module_path/xml/template_MODS_$language.xml";
-
-     $ds = $object->constructDatastream($dsid, 'M');
-     $ds->label = $dsid;
-     $ds->mimeType = 'text/xml';
-     $ds->setContentFromString(file_get_contents($ds_content_file));
-     $object->ingestDatastream($ds);
+     if (!isset($object[$dsid])) {
+       $ds_content_file = "$module_path/xml/template_MODS_$language.xml";
+       $ds = $object->constructDatastream($dsid, 'M');
+       $ds->label = $dsid;
+       $ds->mimeType = 'text/xml';
+       $ds->setContentFromString(file_get_contents($ds_content_file));
+       $object->ingestDatastream($ds);
+     }
 
    } catch (exception $e) {
      drupal_set_message(t('@message', array('@message' => check_plain($e->getMessage()))), 'error', FALSE);
@@ -187,6 +181,7 @@ function islandora_multilingual_create_jpg_derivative($file_uri, $dsid,  $width,
   $dest = drupal_realpath($temp);
   $args['quality'] = '-quality ' . escapeshellarg(variable_get('imagemagick_quality', 75));
   $args['previewsize'] = '-resize ' . escapeshellarg("{$width}x{$height}");
+  $args['colors'] = '-colorspace RGB'; // added by Rosie based on Serhiy
   $context = array(
     'source' => $source,
     'destination' => $dest,

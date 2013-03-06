@@ -20,19 +20,7 @@
     <languageTerm authority="iso639-2b" authorityURL="http://id.loc.gov/vocabulary/iso639-2" type="code" valueURL="http://id.loc.gov/vocabulary/iso639-2/spa/">spa</languageTerm>
     <languageTerm authority="iso639-2b" authorityURL="http://id.loc.gov/vocabulary/iso639-2" type="text" valueURL="http://id.loc.gov/vocabulary/iso639-2/spa">Español</languageTerm>
   </language>
-  <subject authority="local" displayLabel="Keywords">
-    <topic></topic>
-  </subject>
-  <subject authority="local" displayLabel="Keywords">
-    <topic></topic>
-  </subject>
-  <subject authority="local" displayLabel="Keywords">
-    <topic></topic>
-  </subject>
-  <subject authority="local" displayLabel="Keywords">
-    <topic></topic>
-  </subject>
-  <subject authority="local" displayLabel="Keywords">
+  <subject authority="local" displayLabel="Keyword">
     <topic></topic>
   </subject>
   <physicalDescription>

@@ -22,31 +22,28 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
   // Customization for MULTILINGUAL
   module_load_include('inc', 'islandora_multilingual', 'includes/Multilingual');
 
-  try { // WHY YOU WANT THE DC?? FIXME
-    $dc = $islandora_object['DC']->content;
-    $dc_object = DublinCore::import_from_xml_string($dc);
-  } catch (Exception $e) {
-    drupal_set_message(t('Error retrieving object %s %t', array('%s' => $islandora_object->id, '%t' => $e->getMessage())), 'error', FALSE);
-  }
-  $variables['islandora_dublin_core'] = isset($dc_object) ? $dc_object : NULL;
-  $variables['dc_array'] = isset($dc_object) ? $dc_object->as_formatted_array() : array(); 
-  // end dublin core
+#  try { // WHY YOU WANT THE DC?? FIXME
+#    $dc = $islandora_object['DC']->content;
+#    $dc_object = DublinCore::importFromXMLString($dc);
+#  } catch (Exception $e) {
+#    drupal_set_message(t('Error retrieving object %s %t', array('%s' => $islandora_object->id, '%t' => $e->getMessage())), 'error', FALSE);
+#  }
+#  $variables['islandora_dublin_core'] = isset($dc_object) ? $dc_object : NULL;
+#  $variables['dc_array'] = isset($dc_object) ? $dc_object->asArray() : array(); 
+#  // end dublin core
 
   $variables['islandora_object_label'] = $islandora_object->label;
-    // set title 
-  $title_string = theme('display_title', array('title' => $islandora_object->label));
-  drupal_set_title($title_string);
+  
+  #$title_string = theme('display_title', array('title' => $islandora_object->label));
+  #drupal_set_title($title_string);
 
-  /*
-  if (isset($islandora_object->label)) {
-    drupal_set_title($islandora_object->label);
-  }
-  */
 
   $variables['theme_hook_suggestions'][] = 'islandora_pdf__' . str_replace(':', '_', $islandora_object->id); //maybe keep this not fixme
 
   $variables['parent_collections'] = islandora_get_parents_from_rels_ext($islandora_object); 
 
+
+  // Get link url's
   global $base_url;
 
   // full size url
@@ -105,8 +102,8 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
     'mods_dateIssued_ms_' => array('label' => t('Date of Publication'), 'weight' => 0.4),
     'mods_abstract_ms_' => array('label' => t('Description'), 'weight' => 0.7),
     'mods_identifier_isbn_mtt_' => array('label' => t('ISBN'), 'weight' => 0.5),
-    'mods_subject_topic_Subjects_ms_' => array('label' => t('Topics'), 'weight' => 0.6),
-    'mods_subject_topic_Keywords_ms_' => array('label' => t('Keywords'), 'weight' => 0.65),
+    'mods_subject_topic_Topic_ms' => array('label' => t('Topics'), 'weight' => 0.6),
+    'mods_subject_topic_Keyword_ms_' => array('label' => t('Keywords'), 'weight' => 0.65),
     'mods_extent_ms_' => array('label' => t('Number of pages'), 'weight' => 0.7),
     'mods_file_size_ms_' => array('label' => t('File Size'), 'weight' => 0.9),
     'mods_internetMediaType_ms_' => array('label' => t('File Type'), 'weight' => 1.1),
@@ -197,6 +194,8 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
 
   uasort($metadata, 'drupal_sort_weight');
   $variables['mods_array'] = $metadata;
+
+  dpm($variables);
   
 
 

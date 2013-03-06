@@ -9,7 +9,7 @@
 ?>
 
 <div class="islandora-multilingual-object islandora">
-  <div class	="islandora-multilingual-content-wrapper clearfix">
+  <div class="islandora-multilingual-content-wrapper clearfix">
     <?php if (isset($islandora_content)): ?>
       <div class="islandora-multilingual-content">
         <?php print $islandora_content; ?>
@@ -20,8 +20,8 @@
     <?php endif; ?>
   <div class="islandora-multilingual-sidebar">
     <?php if (!empty($dc_array['dc:description']['value'])): ?>
-      <h2><?php print $dc_array['dc:description']['label']; ?></h2>
-      <p><?php print $dc_array['dc:description']['value']; ?></p>
+      <h2>This is a description label <?php print $dc_array['dc:description']['label']; ?></h2>
+      <p> <?php print $dc_array['dc:description']['value']; ?></p>
     <?php endif; ?>
     <?php if($parent_collections): ?>
       <div>
@@ -34,7 +34,7 @@
       </div>
     <?php endif; ?>
   </div>
-  </div>
+</div>
   <fieldset class="collapsible collapsed islandora-multilingual-metadata">
   <legend><span class="fieldset-legend"><?php print t('Additional information'); ?></span></legend>
     <div class="fieldset-wrapper">
