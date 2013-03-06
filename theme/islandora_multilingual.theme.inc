@@ -47,15 +47,15 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
   global $base_url;
 
   // full size url
-  $obj_lang = chooseLanguage($islandora_object, 'OBJ-');
-  if ($obj_lang) {
-    $full_size_url = url("islandora/object/{$islandora_object->id}/datastream/OBJ-{$obj_lang}/view", array('absolute' => TRUE));
+  $obj_ds = chooseLanguage($islandora_object, 'OBJ-');
+  if ($obj_ds) {
+    $full_size_url = url("islandora/object/{$islandora_object->id}/datastream/{$obj_ds}/view", array('absolute' => TRUE));
     $variables['islandora_full_url'] = $full_size_url;
   }
   // thumbnail
-  $tn_lang = chooseLanguage($islandora_object, 'TN-');
-  if ($tn_lang) {
-    $thumbnail_size_url = url("islandora/object/{$islandora_object->id}/datastream/TN-{$tn_lang}/view");
+  $tn_ds = chooseLanguage($islandora_object, 'TN-');
+  if ($tn_ds) {
+    $thumbnail_size_url = url("islandora/object/{$islandora_object->id}/datastream/{$tn_ds}/view");
     $params = array(
       'title' => $islandora_object->label,
       'path' => $thumbnail_size_url
@@ -73,7 +73,7 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
     $variables['islandora_preview_img'] = theme('image', $params);
 */
     $variables['islandora_content'] = l($variables['islandora_thumbnail_img'], $variables['islandora_full_url'], array('html' => TRUE)); // FIXME note: i changed preview img to thumbnail img.
-    $download_url = 'islandora/object/' . $islandora_object->id . '/datastream/OBJ-' . $obj_lang . '/download';
+    $download_url = 'islandora/object/' . $islandora_object->id . '/datastream/' . $obj_ds . '/download';
     $download_text = t("Download");
     $variables['islandora_download_link'] = l($download_text, $download_url, array('attributes' => array('class' => array('islandora-pdf-link'))));
     $view_text = t("View");
