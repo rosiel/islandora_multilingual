@@ -14,16 +14,15 @@
       <div class="islandora-multilingual-content">
         <?php print $islandora_content; ?>
       </div>
+      <?php print $islandora_view_link; ?>
+      <?php print ' | '; ?>
+      <?php print $islandora_download_link; ?>
     <?php endif; ?>
-    <div class="islandora-multilingual-sidebar">
-    <?php foreach ($brief_metadata as $key => $value): ?>
-      <dt class="<?php print $value['class']; ?>">
-        <?php print $value['label']; ?>
-      </dt>
-      <dd class="<?php print $value['class'];?>">
-        <?php print $value['value']; ?>
-      </dd>
-    <?php endforeach; ?>
+  <div class="islandora-multilingual-sidebar">
+    <?php if (!empty($dc_array['dc:description']['value'])): ?>
+      <h2>This is a description label <?php print $dc_array['dc:description']['label']; ?></h2>
+      <p> <?php print $dc_array['dc:description']['value']; ?></p>
+    <?php endif; ?>
     <?php if($parent_collections): ?>
       <div>
         <h2><?php print t('In collections'); ?></h2>

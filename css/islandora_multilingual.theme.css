@@ -1,81 +1,126 @@
 /* 
     Document   : islandora_basic_collection.theme
     Created on : May 23, 2012, 11:23:56 AM
-    Description: The basic multlingual page is a simple flexible layout page
+    Description: The basic multilingual page is a simple flexible layout page
     that breaks down to two columns when 2 sidebars are visible
 */
 
-.islandora-multlingual-link {
+.islandora-multilingual-link {
 
 }
-
-.islandora-multlingual-content {
+.islandora-multilingual-content-wrapper{
+	position: relative;
+}
+.islandora-multilingual-content {
   background-color: #F2F2F2;
-  border: 1px solid #ddd;
+  border: 1px solid #FFF;
   -webkit-border-radius: 5px;
   -moz-border-radius: 5px;
   border-radius: 5px;
   padding: 15px;
+  float: left;
+  max-width: 25%;
 }
 
-.islandora-multlingual-content img {
-  margin: 0;
-  display: block;
-  width: 300px;
+.islandora-multilingual-content img {
+  margin: auto;
+  width: 200px;
+  clear: both;
 }
 
-.islandora-multlingual-metadata {
+.islandora-multilingual-metadata {
   display: block;
   clear: both;
 }
 
-dl.islandora-multlingual-fields {
+dl.islandora-multilingual-fields {
   width:100%;
 }
 
-.islandora-multlingual-metadata dt {
+.islandora-multilingual-metadata dt {
   font-weight: normal;
   text-align: right;
   font-weight: bold;
   padding-right: 0;
 }
 
-.islandora-multlingual-metadata dd {
+.islandora-multilingual-metadata dd {
   padding-left: 40px;
 }
 
 
-.islandora-multlingual-metadata dt,
-.islandora-multlingual-metadata dd {
+.islandora-multilingual-metadata dt,
+.islandora-multilingual-metadata dd {
   border-top:1px solid #e5e5e5;
 }
 
-.islandora-multlingual-metadata dt.first,
-.islandora-multlingual-metadata dd.first {
+.islandora-multilingual-metadata dt.first,
+.islandora-multilingual-metadata dd.first {
   border-top:0;
 }
 
-body.two-sidebars .islandora-multlingual-sidebar {
-    clear: both;
-    width: 100%;
+.islandora-multilingual-sidebar dd {
+	margin: 0;
+	padding-bottom: 0.3em;
+}
+dd.mods-title{
+	font-size: 1.4em;
 }
 
+dd.mods-doctype {
+	font-style: italic;
+}
+
+ul.languages {
+	list-style-type: disc;
+	padding: 0;
+	margin: 0;
+}
+
+.languages li {
+	margin-left: 10px;
+	display: inline;
+}
+
+
+
+.mods-authors .item-list{
+  padding: 0;
+  margin: 0;
+}
+.item-list ul.authors {
+  list-style-type: none;
+  display: inline;
+  padding: 0;
+  margin: 0;
+}
+.islandora-multilingual-sidebar {
+	float: right;
+	padding-left: 15px;
+	width: 74%;
+}
+/*
+ * 
 @media all and (min-width: 768px) {
 
-  body.no-sidebars .islandora-multlingual-content {
+  body.no-sidebars .islandora-multilingual-content {
     width: 65%;
     float: left; /* LTR */
+/*
   }
 
-  body.no-sidebars .islandora-multlingual-sidebar {
+  body.no-sidebars .islandora-multilingual-sidebar {
     padding-left: 20px;
   }
 
-  body.no-sidebars .islandora-multlingual-sidebar {
+  body.no-sidebars .islandora-multilingual-sidebar {
     float: right; /* LTR */
+/*
     width: 35%;
     clear: none;
   }
   
 }
+    */
+
 

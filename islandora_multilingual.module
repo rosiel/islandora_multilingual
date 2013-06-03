@@ -38,6 +38,27 @@ function islandora_multilingual_menu() {
     'access callback' => 'modified_collection_add_access',
     'access arguments' => array(2),
   );
+  // non-multilingual configuration: autocomplete paths
+  $items['admin/islandora_multilingual/solr_autocomplete'] = array(
+      'title' => 'autocomplete callback',
+      'description' => 'Autocomplete from values in a solr field',
+      'file' => 'includes/autocomplete.inc',
+      'page callback' => 'islandora_multilingual_solr_autocomplete',
+      'page arguments' => array(3,4),
+      'access callback' => 'yes',
+      'type' => MENU_CALLBACK,
+  );
+  // non-multilingual configuration: autocomplete from hackily hard-coded files because I'm too lazy to port Islandora Autocomplete from 6
+  $items['admin/islandora_multilingual/file_autocomplete'] = array(
+      'title' => 'autocomplete callback',
+      'description' => 'Autocomplete from JSON in a file.',
+      'file' => 'includes/autocomplete.inc',
+      'page callback' => 'islandora_multilingual_file_autocomplete',
+      'page arguments' => array(3,4),
+      'access callback' => 'yes',
+      'type' => MENU_CALLBACK,
+  );
+
   return $items;
 }
 
@@ -141,6 +162,7 @@ function modified_collection_add_access($object = NULL) {
   static $checked_objects = array();
   if (!in_array($object->id, array_keys($checked_objects))) {
     module_load_include('inc', 'islandora', 'includes/ingest.form');
+    module_load_include('inc', 'islandora_basic_collection', 'includes/ingest.form');
     // Assume ingest is denied.
     $checked_objects[$object->id] = FALSE;
     $configuration = islandora_basic_collection_get_ingest_configuration($object);
@@ -151,6 +173,10 @@ function modified_collection_add_access($object = NULL) {
     }
   }
   return $checked_objects[$object->id];
+}
+
+function yes() {
+    return TRUE;
 }
 
 /**
@@ -195,12 +221,35 @@ function islandora_multilingual_datastream_form_validate(array &$form, array &$f
   //form_set_error('error');
 }
 
+/*
 function islandora_multilingual_block_view_islandora_solr_simple_alter(&$data, $block) {
-  //watchdog('rosie', dprint_r($data['content']));
   $data['content']['simple']['advanced'] = array(
-    '#title' => t('Advanced Search'),
-    '#markup' => l(t('advanced search'), 'node/16', array()),
+    '#title' => t('Advanced'),
+    '#markup' => l(t('Advanced'), 'advanced-search', array()),
   );
+}
+ */
+
+/**
+ * Implements hook_xml_form_builder_get_transforms().
+ *
+ * Grabs any XSLTs from the "transforms" directory inside of this module.
+ */
+
+function islandora_multilingual_xml_form_builder_get_transforms() {
+  $p = drupal_get_path('module', 'islandora_multilingual');
+  $transforms = array();
+  $include_path = "$p/transforms";
+  $dir = opendir($include_path);
+  if ($dir !== FALSE) {
+    while (($file = readdir($dir)) !== FALSE) {
+      if (preg_match('/\.xslt?$/', $file)) {
+        $transforms["$file"] = "$include_path/$file";
+      }
+    }
+  }
+  closedir($dir);
+  return $transforms;
 }
 
 ## BELOW THIS APPEARS OBSOLETE

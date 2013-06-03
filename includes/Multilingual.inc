@@ -84,8 +84,9 @@ function islandora_multilingual_create_all_derivatives(FedoraObject $object, $ds
     return FALSE;
   }
   $success = TRUE;
+  $lang = substr($dsid, 4);
   $file_uri = islandora_multilingual_get_derivative_source_as_unmanaged_file($object, $dsid);
-  $success &= islandora_multilingual_add_tn_derivative($object, $file_uri);
+  $success &= islandora_multilingual_add_tn_derivative($object, $file_uri, $lang);
   //$success &= islandora_pdf_add_preview_derivative($object, $file_uri);
   file_unmanaged_delete($file_uri);
   return $success;
@@ -122,10 +123,10 @@ function islandora_multilingual_get_derivative_source_as_unmanaged_file(FedoraOb
  * @return boolean
  *   TRUE if successful, FALSE otherwise.
  */
-function islandora_multilingual_add_tn_derivative(FedoraObject $object, $file_uri) {
+function islandora_multilingual_add_tn_derivative(FedoraObject $object, $file_uri, $lang) {
   $width = variable_get('islandora_pdf_thumbnail_width', 200);
   $height = variable_get('islandora_pdf_thumbnail_height', 200);
-  return islandora_multilingual_add_jpg_derivative($object, $file_uri, 'TN-EN', $width, $height);
+  return islandora_multilingual_add_jpg_derivative($object, $file_uri, 'TN-' . $lang, $width, $height);
 }
 
 /**
