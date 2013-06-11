@@ -6,6 +6,8 @@
  */
 
 /**
+ * preprocess for islandora_multilingual theme
+ * used for displaying object landing pages
  *
  * @global type $base_url
  * @param array $variables
