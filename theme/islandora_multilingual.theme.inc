@@ -111,44 +111,24 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
     'mods_internetMediaType_ms_' => array('label' => t('File Type'), 'weight' => 1.1),
     'mods_identifier_isbn_mtt_' => array('label' => t('ISBN'), 'weight' => 1.2),
     'mods_identifier_QA_mtt_' => array('label' => t('QA number'), 'weight' => 1.3),
+    'rels.isDerivationOf' => array('label' => t('This document is based on'), 'weight' => 1.4),
+    'rels.hasDerivation' => array('label' => t('Based on this document'), 'weight' => 1.5),
   );
 
 
-  //copied from islandoraSolrQueryProcessor()
-  $url = variable_get('islandora_solr_url', 'localhost:8080/solr');
-  $pathParts = parse_url($url);
-
-
-  // call Solr
-  $solr = new Apache_Solr_Service($pathParts['host'], $pathParts['port'], $pathParts['path'] . '/');
-  $solr->setCreateDocuments(0);
-
-  try {
-    $solr_query = 'PID:' . $islandora_object->id;
-    $results = $solr->search($solr_query, 0, 1);
-  } catch (Exception $e) {
-    drupal_set_message(check_plain(t('Object not in Solr index.')) . ' ' . $e->getMessage(), 'error');
-  }
-
-  unset($solr);
-  
-  if (isset($results)) {
-    $rawResponse = $results->getRawResponse();
-    $responseArray = json_decode($rawResponse, TRUE);
-    $doc = $responseArray['response']['docs'][0];
-    unset($results);
-  } else {
-    $doc = array();
-  }
+  $doc = getSolrDocByPid($islandora_object->id);
 
   if (!is_array($doc)) {
     watchdog('multilingual', 'Solr results not returned; please wait a few moments or re-index this document.');
   }
   $metadata = array();
   $OBJ_langs = array();
+  $related = array();
 
   include_once DRUPAL_ROOT . '/includes/iso.inc';
   $predefined = _locale_get_predefined_list();
+
+
 
   foreach ($doc as $field => $value) {
     // if an OBJ field, record the language and the link to the datastream.
@@ -188,7 +168,7 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
             foreach ($value as $keyword) {
                 $links[] = array(
                     'title' => $keyword,
-                    'href' => url("islandora/search/mods_subject_topic_Keyword_ms_EN%3A\"" . $keyword . '"', array('absolute' => TRUE)),
+                    'href' => url("islandora/search/mods_subject_topic_Keyword_ms_" . $lang . "%3A\"" . $keyword . '"', array('absolute' => TRUE)),
                     'html' => FALSE,
                     'attributes' => array('class' => array('keywords')),
                 );
@@ -202,6 +182,28 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
 		// assign the value
 		$metadata[$generic_field]['value'] = $value;
 	  }
+    }
+
+    // If it's a rels-ext field, store it for related documents.
+    if (preg_match('/^rels.*/', $field) === 1) {
+        if (array_key_exists($field, $resultFieldArray)) {
+            $metadata[$field]['label'] = $resultFieldArray[$field]['label'];
+            $metadata[$field]['class'] = strtolower(preg_replace('/[^A-Za-z0-9]/', '-', $field));
+            $metadata[$field]['weight'] = $resultFieldArray[$field]['weight'];
+            if (is_array($value)) {
+                $links = array();
+                foreach ($value as $longpid) {
+                    $links[] = array(
+                        'title' => getTitleByPid(substr($longpid,12), $lang),
+                        'href' => url('islandora/object/' . substr($longpid,12), array('absolute' => TRUE)),
+                        'html' => TRUE,
+                        'attributes' => array('class' => array('related')),
+                    );
+                }
+                $value = theme('links', array('links' => $links));
+            }
+            $metadata[$field]['value'] = $value;
+        }
     }
   }
 
@@ -222,25 +224,25 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
   }
 
   // Get related docs
-  if (isset($doc['rels.isBasedOn'])) {
-      $basis_pids = array();
-      foreach ($doc['rels.isBasedOn'] as $ref) {
+  if (isset($doc['rels.isDerivationOf'])) {
+      $based_on_pids = array();
+      foreach ($doc['rels.isDerivationOf'] as $ref) {
           if (strlen($ref) > 14) {
-              $basis_pids[] = substr($ref, 12);
+              $based_on_pids[] = substr($ref, 12);
           }
       }
   }
-  if (isset($doc['rels.isBasisOf'])) {
-      $based_pids = array();
-      foreach ($doc['rels.isBasisOf'] as $ref) {
+  if (isset($doc['rels.hasDerivation'])) {
+      $basis_of_pids = array();
+      foreach ($doc['rels.hasDerivation'] as $ref) {
           if (strlen($ref) > 14) {
-              $based_pids[] = substr($ref, 12);
+              $basis_of_pids[] = substr($ref, 12);
           }
       }
   }
   
   // create list of available objects for extended metadata
-  $availability_list = theme('links', array('links' => $OBJ_langs, 'attributes' => array('class' =>'languages'),));
+  $availability_list = getAvailabilityByPid($islandora_object->id);
   $metadata['language']['label'] = t('Available in:');
   $metadata['language']['class'] = 'language-list';
   $metadata['language']['weight'] = 1.4;
@@ -344,15 +346,18 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
   }
 
   $variables['brief_metadata'] = $brief_metadata;
+
   $title = filter_xss($title, array('i', 'em'));
-  drupal_set_title($title, PASS_THROUGH);
+  //drupal_set_title($title, PASS_THROUGH);
+  drupal_set_title(Null);
 
 	  
 
 }
 
-function getAvailabilityByPid($pid) {
-  //copied from islandoraSolrQueryProcessor()
+
+function getSolrDocByPid($pid) {
+      //copied from islandoraSolrQueryProcessor()
   $url = variable_get('islandora_solr_url', 'localhost:8080/solr');
   $pathParts = parse_url($url);
 
@@ -378,27 +383,66 @@ function getAvailabilityByPid($pid) {
   } else {
     $doc = array();
   }
+  return $doc;
+}
+
+function getAvailabilityByPid($pid) {
+  $doc = getSolrDocByPid($pid);
   
   include_once DRUPAL_ROOT . '/includes/iso.inc';
   $predefined = _locale_get_predefined_list();
   $OBJ_langs = array();
-  foreach ($doc as $field => $value) {
-	  // if an OBJ field, record the language and the link to the datastream.
-	  if (preg_match('/ds.OBJ-/', $field) === 1) {
-		  $suffix = substr($field, 7);
-		  $lang_code = strtolower($suffix);
-		  if (!isset($predefined[$lang_code])) {
-			  continue;
-		  }
-		  // get name of language from predefined list; use native language if possible.
-		  $lang_name = isset($predefined[$lang_code][1]) ? $predefined[$lang_code][1] : $predefined[$lang_code][0];
-		  $url = url("islandora/object/{$pid}/datastream/OBJ-{$suffix}/view", array('absolute' => TRUE));
-		  $OBJ_langs[$lang_name] = array(
-			  'title' => $lang_name,
-			  'href' => $url,
-		  );
-	  }
+
+  $languages = array();
+  // The new way, with fedora_datastreams_ms
+  $datastreams = isset($doc['fedora_datastreams_ms']) ? $doc['fedora_datastreams_ms'] : array();
+  $datastreams = isset($datastreams['value']) ? $datastreams['value'] : $datastreams;
+  foreach ($datastreams as $key => $datastream) {
+      if (preg_match('/OBJ/', $datastream) == 1) {
+          $suffix = (strlen($datastream) > 5) ? substr($datastream, 4) : 'EN';
+          $languages[] = strtolower($suffix);
+      }
+  }
+  // The old way, using ds.OBJ-XX fields.
+  if (empty($languages)) {
+      foreach ($doc as $field => $value) {
+          // if an OBJ field, record the language and the link to the datastream.
+          if (preg_match('/ds.OBJ-/', $field) === 1) {
+              $suffix = substr($field, 7);
+              $languages[] = strtolower($suffix);
+          }
+      }
+  }
+  foreach ($languages as $lang_code) {
+      if (!isset($predefined[$lang_code])) {
+          continue;
+      }
+      // get name of language from predefined list; use native language if possible.
+      $lang_name = isset($predefined[$lang_code][1]) ? $predefined[$lang_code][1] : $predefined[$lang_code][0];
+      $url = url("islandora/object/{$pid}/datastream/OBJ-{$suffix}/view", array('absolute' => TRUE));
+      $OBJ_langs[$lang_name] = array(
+          'title' => $lang_name,
+          'href' => $url,
+      );
+	  
   }
   return theme('links', array('links' => $OBJ_langs, 'attributes' => array('class' =>'languages')));
+
+}
+
+function getTitleByPid($pid, $lang) {
+    module_load_include('inc', 'islandora_multilingual', 'includes/Multilingual');
+    $doc = getSolrDocByPid($pid);
+    $title_template = 'mods_title_ms_';
+    $subtitle_template = 'mods_subTitle_ms_';
+
+    $title_field = chooseLanguage($doc, $title_template);
+    $title = $doc[$title_field][0];
+    $title_lang = substr($title_field, -2);
+    if ( isset($doc[$subtitle_template . $title_lang])) {
+        $title = ($title_lang == 'fr') ? $title . ' : ' : $title . ': ';
+        $title = $title . $doc[$subtitle_template . $title_lang][0];
+    }
+    return $title;
 
 }

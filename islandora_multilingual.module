@@ -154,26 +154,10 @@ function islandora_multilingual_islandora_datastream_ingested($object, $datastre
  */
 
 function modified_collection_add_access($object = NULL) { 
-  if (!is_object($object) || !user_access(FEDORA_INGEST)) {
-    return FALSE;
-  }
-  // Reduce need to validate to once per object, as this if often called more
-  // than once per request.
-  static $checked_objects = array();
-  if (!in_array($object->id, array_keys($checked_objects))) {
-    module_load_include('inc', 'islandora', 'includes/ingest.form');
-    module_load_include('inc', 'islandora_basic_collection', 'includes/ingest.form');
-    // Assume ingest is denied.
-    $checked_objects[$object->id] = FALSE;
-    $configuration = islandora_basic_collection_get_ingest_configuration($object);
-    if ($configuration) {
-      $steps = islandora_ingest_get_approximate_steps($configuration);
-      // Only if one or more steps are defined should we ingest.
-      $checked_objects[$object->id] = count($steps) > 0;
-    }
-  }
-  return $checked_objects[$object->id];
+    module_load_include('module', 'islandora_basic_collection', '');
+    return islandora_basic_collection_ingest_access($object);
 }
+
 
 function yes() {
     return TRUE;

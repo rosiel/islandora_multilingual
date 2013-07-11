@@ -8,7 +8,7 @@
 "Assessing Environment and Trade Relationships":"Assessing Environment and Trade Relationships",
 "Electricity and the Environment (Article 13)":"Electricity and the Environment (Article 13)",
 "Enhancing North American Air Quality Management":"Enhancing North American Air Quality Management",
-"Children\u0027s Health and the Environment in North America":"Children\u0027s Health and the Environment in North America",
+"Children's Health and the Environment in North America":"Children's Health and the Environment in North America",
 "Terrestrial Species of Common Conservation Concern":"Terrestrial Species of Common Conservation Concern",
 "Trade and Enforcement of Environmental Laws":"Trade and Enforcement of Environmental Laws",
 "Environment, Economy and Trade":"Environment, Economy and Trade",

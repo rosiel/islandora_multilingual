@@ -12,6 +12,40 @@ function chooseLanguage(&$object, $datastream = 'ds.OBJ-') {
   $drupal_lang_suffix = strtoupper($language->language);
   $suffix_backup = explode(',', variable_get('islandora_languages', 'EN, ES, FR'));
 
+  if (isset($object['fedora_datastreams_ms'])) {
+      // TODO: deprecate the use of ds.XX as a query here. Then remove this if-else and replace dsname with datastream.
+      if (in_array($datastream, array('ds.OBJ-', 'ds.TN-', ))) {
+          $dsname = substr($datastream, 3);
+      }
+      else {
+          $dsname = $datastream;
+      }
+      // Check for the datastream value in either the array ['fedora_datastreams_ms'] or ['fedora_datastreams_ms']['value'],
+      // depending whether solr was called directly or through islandora.
+      if (in_array($dsname . $drupal_lang_suffix, $object['fedora_datastreams_ms'])){
+          return $datastream . $drupal_lang_suffix;
+      }
+      elseif (isset($object['fedora_datastreams_ms']['value'])) {
+          if (in_array($dsname . $drupal_lang_suffix, $object['fedora_datastreams_ms']['value'])){
+              return $datastream . $drupal_lang_suffix;
+          }
+      }
+
+      // Cycle through the non-drupal languages in ['fedora_datastreams_ms'] or ['fedora_datastreams_ms']['value'],
+ 
+      foreach ($suffix_backup as $test_suffix) {
+          if (in_array($dsname . $test_suffix, $object['fedora_datastreams_ms'])) {
+              return $datastream . $test_suffix;
+          }
+          else {
+              if (isset($object['fedora_datastreams_ms']['value'])) {
+                  if (in_array($dsname . $test_suffix, $object['fedora_datastreams_ms']['value'])) {
+                      return $datastream . $test_suffix;
+                  }
+              }
+          }
+      }
+  }
   if (isset($object[$datastream . $drupal_lang_suffix])) {
     $suffix = $drupal_lang_suffix;
   }

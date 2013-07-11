@@ -7,7 +7,7 @@
 
 
 #content-header h1.title {
-    display: none;
+    /*display: none;*/
 }
 .islandora-multilingual-link {
 
@@ -16,13 +16,13 @@
 	position: relative;
 }
 .islandora-multilingual-content {
-  border: 1px solid #aaa;
-  padding: 7px;
   float: left;
   max-width: 25%;
 }
 
 .islandora-multilingual-content img {
+  border: 1px solid #aaa;
+  padding: 7px;
   margin: auto;
   width: 200px;
   clear: both;
