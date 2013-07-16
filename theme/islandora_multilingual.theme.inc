@@ -42,10 +42,6 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
           unset($variables['parent_collections'][$key]);
       }
   }
-
-
-
-
   // Get link url's
   global $base_url;
 
@@ -122,31 +118,11 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
     watchdog('multilingual', 'Solr results not returned; please wait a few moments or re-index this document.');
   }
   $metadata = array();
-  $OBJ_langs = array();
   $related = array();
-
-  include_once DRUPAL_ROOT . '/includes/iso.inc';
-  $predefined = _locale_get_predefined_list();
-
-
+  // Get available languages from $doc.
 
   foreach ($doc as $field => $value) {
-    // if an OBJ field, record the language and the link to the datastream.
-    if (preg_match('/ds.OBJ-/', $field) === 1) {
-      $suffix = substr($field, 7);
-      $lang_code = strtolower($suffix);
-      if (!isset($predefined[$lang_code])) {
-        continue;
-      }
-      // get name of language from predefined list; use native language if possible.
-      $lang_name = isset($predefined[$lang_code][1]) ? $predefined[$lang_code][1] : $predefined[$lang_code][0];
-      $url = url("islandora/object/{$islandora_object->id}/datastream/OBJ-{$suffix}/view", array('absolute' => TRUE));
-	  $OBJ_langs[$lang_name] = array(
-		  'title' => $lang_name,
-		  'href' => $url,
-	  );
-    }
-    // Otherwise seek only fields suffixed by the chosen suffix $lang.
+    // Seek only fields suffixed by the chosen suffix $lang.
     if (preg_match('/^.*_' . $lang . '$/', $field) === 1) {
       // strip language code from solr field name
       $generic_field = substr($field, 0, strlen($field)-2);
@@ -356,93 +332,4 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
 }
 
 
-function getSolrDocByPid($pid) {
-      //copied from islandoraSolrQueryProcessor()
-  $url = variable_get('islandora_solr_url', 'localhost:8080/solr');
-  $pathParts = parse_url($url);
 
-
-  // call Solr
-  $solr = new Apache_Solr_Service($pathParts['host'], $pathParts['port'], $pathParts['path'] . '/');
-  $solr->setCreateDocuments(0);
-
-  try {
-    $solr_query = 'PID:' . $pid;
-    $results = $solr->search($solr_query, 0, 1);
-  } catch (Exception $e) {
-    watchdog('rosie', check_plain(t('Object not in Solr index.')) . ' ' . $e->getMessage());
-  }
-
-  unset($solr);
-  
-  if (isset($results)) {
-    $rawResponse = $results->getRawResponse();
-    $responseArray = json_decode($rawResponse, TRUE);
-    $doc = $responseArray['response']['docs'][0];
-    unset($results);
-  } else {
-    $doc = array();
-  }
-  return $doc;
-}
-
-function getAvailabilityByPid($pid) {
-  $doc = getSolrDocByPid($pid);
-  
-  include_once DRUPAL_ROOT . '/includes/iso.inc';
-  $predefined = _locale_get_predefined_list();
-  $OBJ_langs = array();
-
-  $languages = array();
-  // The new way, with fedora_datastreams_ms
-  $datastreams = isset($doc['fedora_datastreams_ms']) ? $doc['fedora_datastreams_ms'] : array();
-  $datastreams = isset($datastreams['value']) ? $datastreams['value'] : $datastreams;
-  foreach ($datastreams as $key => $datastream) {
-      if (preg_match('/OBJ/', $datastream) == 1) {
-          $suffix = (strlen($datastream) > 5) ? substr($datastream, 4) : 'EN';
-          $languages[] = strtolower($suffix);
-      }
-  }
-  // The old way, using ds.OBJ-XX fields.
-  if (empty($languages)) {
-      foreach ($doc as $field => $value) {
-          // if an OBJ field, record the language and the link to the datastream.
-          if (preg_match('/ds.OBJ-/', $field) === 1) {
-              $suffix = substr($field, 7);
-              $languages[] = strtolower($suffix);
-          }
-      }
-  }
-  foreach ($languages as $lang_code) {
-      if (!isset($predefined[$lang_code])) {
-          continue;
-      }
-      // get name of language from predefined list; use native language if possible.
-      $lang_name = isset($predefined[$lang_code][1]) ? $predefined[$lang_code][1] : $predefined[$lang_code][0];
-      $url = url("islandora/object/{$pid}/datastream/OBJ-{$suffix}/view", array('absolute' => TRUE));
-      $OBJ_langs[$lang_name] = array(
-          'title' => $lang_name,
-          'href' => $url,
-      );
-	  
-  }
-  return theme('links', array('links' => $OBJ_langs, 'attributes' => array('class' =>'languages')));
-
-}
-
-function getTitleByPid($pid, $lang) {
-    module_load_include('inc', 'islandora_multilingual', 'includes/Multilingual');
-    $doc = getSolrDocByPid($pid);
-    $title_template = 'mods_title_ms_';
-    $subtitle_template = 'mods_subTitle_ms_';
-
-    $title_field = chooseLanguage($doc, $title_template);
-    $title = $doc[$title_field][0];
-    $title_lang = substr($title_field, -2);
-    if ( isset($doc[$subtitle_template . $title_lang])) {
-        $title = ($title_lang == 'fr') ? $title . ' : ' : $title . ': ';
-        $title = $title . $doc[$subtitle_template . $title_lang][0];
-    }
-    return $title;
-
-}
