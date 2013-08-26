@@ -158,8 +158,8 @@ function islandora_multilingual_get_derivative_source_as_unmanaged_file(FedoraOb
  *   TRUE if successful, FALSE otherwise.
  */
 function islandora_multilingual_add_tn_derivative(FedoraObject $object, $file_uri, $lang) {
-  $width = variable_get('islandora_pdf_thumbnail_width', 200);
-  $height = variable_get('islandora_pdf_thumbnail_height', 200);
+  $width = variable_get('islandora_pdf_thumbnail_width', 300);
+  $height = variable_get('islandora_pdf_thumbnail_height', 300);
   return islandora_multilingual_add_jpg_derivative($object, $file_uri, 'TN-' . $lang, $width, $height);
 }
 

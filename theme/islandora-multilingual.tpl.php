@@ -25,14 +25,12 @@
       </dd>
     <?php endforeach; ?>
     <?php if($parent_collections): ?>
-      <div>
-        <h2><?php print t('In collections'); ?></h2>
-        <ul>
+        <dt class="collections"><?php print t('In collections:'); ?></dt>
+        <dd class="collections"><ul>
           <?php foreach ($parent_collections as $collection): ?>
             <li><?php print l($collection->label, "islandora/object/{$collection->id}"); ?></li>
           <?php endforeach; ?>
-        </ul>
-      </div>
+        </ul></dd>
     <?php endif; ?>
   </div>
 </div>
