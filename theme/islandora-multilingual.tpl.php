@@ -7,7 +7,6 @@
  * @TODO: Add documentation about this file and the available variables
  */
 ?>
-
 <div class="islandora-multilingual-object islandora">
   <div class="islandora-multilingual-content-wrapper clearfix">
     <?php if (isset($islandora_content)): ?>

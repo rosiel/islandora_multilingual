@@ -4,4 +4,3 @@ dependencies[] = islandora
 package = Islandora Customizations
 version = 7.x-1.0
 core = 7.x
-stylesheets[all][] = css/islandora_multilingual.theme.css

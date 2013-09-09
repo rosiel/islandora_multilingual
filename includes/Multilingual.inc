@@ -4,7 +4,7 @@
 * Returns the best available datastream suffix
 * @param FedoraObject $object OR a "document" subsection of a returned Solr array.
 * @param string $datastream
-* returns string $suffix
+* returns datastream name string, including suffix, or Null if no datastream was found.
 */
 
 function chooseLanguage(&$object, $datastream = 'ds.OBJ-') {
@@ -31,7 +31,7 @@ function chooseLanguage(&$object, $datastream = 'ds.OBJ-') {
           }
       }
 
-      // Cycle through the non-drupal languages in ['fedora_datastreams_ms'] or ['fedora_datastreams_ms']['value'],
+      // Cycle through the non-active languages in ['fedora_datastreams_ms'] or ['fedora_datastreams_ms']['value'],
  
       foreach ($suffix_backup as $test_suffix) {
           if (in_array($dsname . $test_suffix, $object['fedora_datastreams_ms'])) {

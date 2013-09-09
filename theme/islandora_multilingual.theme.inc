@@ -16,6 +16,7 @@
 function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
   drupal_add_js('misc/form.js');
   drupal_add_js('misc/collapse.js');
+  drupal_add_css(drupal_get_path('module', 'islandora_multilingual') . '/css/islandora_multilingual.theme.css');
   $islandora_object = $variables['islandora_object'];
   $repository = $islandora_object->repository;
   module_load_include('inc', 'islandora', 'includes/datastream');
@@ -36,9 +37,10 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
   $variables['theme_hook_suggestions'][] = 'islandora_pdf__' . str_replace(':', '_', $islandora_object->id); //maybe keep this not fixme
 
   $variables['parent_collections'] = islandora_get_parents_from_rels_ext($islandora_object); 
-  // Remove reference to being in "pubs:collections"
+  // Remove reference to being in "pubs:collections" and the theme collections
+  $exclude = array('pubs:collection', 'pubs:pollutants', 'pubs:greeneconomy', 'pubs:ecosystems', 'pubs:enforcement', 'pubs:climatechange');
   foreach ($variables['parent_collections'] as $key => $collection) {
-      if ($collection->id == 'pubs:collection') {
+      if (in_array($collection->id, $exclude)) {
           unset($variables['parent_collections'][$key]);
       }
   }
@@ -99,8 +101,8 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
     'mods_publisher_ms_' => array('label' => t('Publisher'), 'weight' => 0.3),
     'mods_dateIssued_ms_' => array('label' => t('Date of Publication'), 'weight' => 0.4),
     'mods_abstract_ms_' => array('label' => t('Description'), 'weight' => 0.7),
-    'mods_subject_topic_Topic_ms_' => array('label' => t('Topics'), 'weight' => 0.6),
-    'mods_subject_topic_Keyword_ms_' => array('label' => t('Keywords'), 'weight' => 0.65),
+    'mods_subject_topic_Keyword_ms_' => array('label' => t('Themes'), 'weight' => 0.6),
+    'mods_subject_topic_Topic_ms_' => array('label' => t('Keywords'), 'weight' => 0.65),
     'mods_subject_meeting_ms_' => array('label' => t('Conference'), 'weight' => 0.67),
     'mods_extent_ms_' => array('label' => t('Number of pages'), 'weight' => 0.7),
     'mods_file_size_ms_' => array('label' => t('File Size'), 'weight' => 0.9),
@@ -142,9 +144,10 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
         if ($generic_field == 'mods_subject_topic_Keyword_ms_') {
             $links = array();
             foreach ($value as $keyword) {
+                $query = array('f[0]' => "mods_subject_topic_Keyword_ms_" . $lang . ':"' . $keyword . '"', 'sort' => 'date_facet desc',);
                 $links[] = array(
                     'title' => $keyword,
-                    'href' => url("islandora/search/mods_subject_topic_Keyword_ms_" . $lang . "%3A\"" . $keyword . '"', array('absolute' => TRUE)),
+                    'href' => url("islandora/search/ ", array('query' => $query, 'absolute' => TRUE)),
                     'html' => FALSE,
                     'attributes' => array('class' => array('keywords')),
                 );
@@ -252,6 +255,7 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
 		  'value' => $doc[$field][0],
 	  );
       //set subtitle into title variable
+      $title = $language->language == 'fr' ? $title . ' ' : $title;
       $title .= ': ' . $doc[$field][0];
   }
   $field = 'mods_partName_ms_';
@@ -324,8 +328,7 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
   $variables['brief_metadata'] = $brief_metadata;
 
   $title = filter_xss($title, array('i', 'em'));
-  //drupal_set_title($title, PASS_THROUGH);
-  drupal_set_title(Null);
+  drupal_set_title($title, PASS_THROUGH);
 
 	  
 
