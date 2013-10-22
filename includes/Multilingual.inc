@@ -64,6 +64,10 @@ function chooseLanguage(&$object, $datastream = 'ds.OBJ-') {
     return $datastream . $suffix;
   }
 }
+
+function italics($string) {
+    return '<i>' . $string . '</i>';
+}
 /* 
  * This function, called on post-ingest for objects with CM CEC_multilingual, 
  * assumes that the FedoraObject $object has only one

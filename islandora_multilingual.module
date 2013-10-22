@@ -45,7 +45,7 @@ function islandora_multilingual_menu() {
       'file' => 'includes/autocomplete.inc',
       'page callback' => 'islandora_multilingual_solr_autocomplete',
       'page arguments' => array(3,4),
-      'access callback' => 'yes',
+      'access callback' => 'user_is_logged_in', 
       'type' => MENU_CALLBACK,
   );
   // non-multilingual configuration: autocomplete from hackily hard-coded files because I'm too lazy to port Islandora Autocomplete from 6
@@ -55,12 +55,13 @@ function islandora_multilingual_menu() {
       'file' => 'includes/autocomplete.inc',
       'page callback' => 'islandora_multilingual_file_autocomplete',
       'page arguments' => array(3,4),
-      'access callback' => 'yes',
+      'access callback' => 'user_is_logged_in',
       'type' => MENU_CALLBACK,
   );
 
   return $items;
 }
+
 
 /** 
  * Implements hook_variable_info()
@@ -158,11 +159,21 @@ function modified_collection_add_access($object = NULL) {
     return islandora_basic_collection_ingest_access($object);
 }
 
-
-function yes() {
-    return TRUE;
+/** 
+ * Fixme should go elsewhere
+ * Alters the display of datastreams to include the last edited date.
+ */
+function islandora_multilingual_process_islandora_default_edit(&$variables) {
+    $variables['datastream_table']['header'][] = array('data' => t('Last modified'));
+    $i = 0;
+    foreach ($variables['islandora_object'] as $ds) {
+        $variables['datastream_table']['rows'][$i][] = array(
+            'class' => 'datastream_modified', 
+            'data' => $ds->createdDate,
+        );
+        $i = $i + 1;
+    }
 }
-
 /**
  * Implements hook_form_alter()
  *
@@ -178,6 +189,28 @@ function islandora_multilingual_form_alter(&$form, $form_state, $form_id) {
  }
 
 }
+
+/**
+ * Implements hook_form_FORM_ID_alter()
+ *
+ * Alters the add datastream form to not let the user access the 'Label' field.
+ * Prepends our validation function which copies the filename to the label field.
+ */
+function islandora_multilingual_form_islandora_add_datastream_form_alter(&$form, $form_state) {
+    $form['label']['#type'] = 'hidden';
+    $form['label']['#value'] = 'test';
+    array_unshift($form['#validate'], 'islandora_multilingual_add_datastream_form_validate');
+}
+
+/**
+ * Copies the name of the uploaded file to the label field in add_datastream_form.
+ */
+function islandora_multilingual_add_datastream_form_validate(array &$form, array &$form_state) {
+    $file = file_load($form_state['values']['file']);
+    $form_state['values']['label'] = $file->filename;
+    $form_state['input']['label'] = $file->filename;
+}
+
 
 function islandora_multilingual_datastream_form_validate(array &$form, array &$form_state) {
     $should_clear = FALSE;

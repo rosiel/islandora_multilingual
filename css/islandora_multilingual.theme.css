@@ -82,6 +82,12 @@ dd.mods-doctype {
   padding: 0;
   margin: 0;
 }
+.islandora-inline-metadata ul.links {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
 .islandora-multilingual-sidebar {
 	float: right;
 	padding-left: 15px;
