@@ -37,8 +37,8 @@ function islandora_multilingual_pdf_upload_form(array $form, array &$form_state)
       '#type' => 'select',
       '#options' => array(
         'EN' => t('English'),
-	'ES' => t('Spanish'),
-	'FR' => t('French')
+	    'ES' => t('Spanish'),
+	    'FR' => t('French')
       ),
       '#default' => 'EN', 
     ),

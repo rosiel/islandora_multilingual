@@ -73,7 +73,6 @@ function islandora_multilingual_variable_info() {
     'description' => t('Languages in which Islandora objects should be sought. This is the upper-case version of the language code in Drupal.'),
     'type' => 'string',
   );
-
 }
 
 /**
@@ -140,10 +139,18 @@ function islandora_multilingual_islandora_datastream_ingested($object, $datastre
     $missing_ds = !(isset($object['MODS-EN']) and isset($object['MODS-ES']) and isset($object['MODS-FR']));
     if ($missing_ds) {
       multilingual_create_multiple_metadatastreams($object, $datastream);
+      multilingual_synchronize_mods_datastreams($object, $datastream);
     } 
   }
   if (preg_match('/OBJ-.*/', $datastream->id) === 1) {
     islandora_multilingual_create_all_derivatives($object, $datastream->id);
+  }
+}
+
+function islandora_multilingual_islandora_datastream_modified($object, $datastream) {
+  module_load_include('inc', 'islandora_multilingual', 'includes/Multilingual');
+  if (preg_match('/MODS-/', $datastream->id) === 1) {
+    multilingual_synchronize_mods_datastreams($object, $datastream);
   }
 }
 
@@ -190,28 +197,14 @@ function islandora_multilingual_form_alter(&$form, $form_state, $form_id) {
 
 }
 
-/**
- * Implements hook_form_FORM_ID_alter()
+/*
+ * This custom validation function runs after you edit metadata using a mods form
+ * either when ingesting or when editing an existing datastream.
  *
- * Alters the add datastream form to not let the user access the 'Label' field.
- * Prepends our validation function which copies the filename to the label field.
+ * It clears the unselected checkbox elements (so as to not write their nodes)
+ *
+ * It marks this datastream as "master".
  */
-function islandora_multilingual_form_islandora_add_datastream_form_alter(&$form, $form_state) {
-    $form['label']['#type'] = 'hidden';
-    $form['label']['#value'] = 'test';
-    array_unshift($form['#validate'], 'islandora_multilingual_add_datastream_form_validate');
-}
-
-/**
- * Copies the name of the uploaded file to the label field in add_datastream_form.
- */
-function islandora_multilingual_add_datastream_form_validate(array &$form, array &$form_state) {
-    $file = file_load($form_state['values']['file']);
-    $form_state['values']['label'] = $file->filename;
-    $form_state['input']['label'] = $file->filename;
-}
-
-
 function islandora_multilingual_datastream_form_validate(array &$form, array &$form_state) {
     $should_clear = FALSE;
 
@@ -233,19 +226,38 @@ function islandora_multilingual_datastream_form_validate(array &$form, array &$f
         if ($form_state['values']['Language'] == '0') {
             unset($root->children['Language']);
         }
+
+        // Mark this datastream as "master"
+        $form_state['values']['master'] = 'yes';
     }
 	//dpm($form_state);
   //form_set_error('error');
 }
 
-/*
-function islandora_multilingual_block_view_islandora_solr_simple_alter(&$data, $block) {
-  $data['content']['simple']['advanced'] = array(
-    '#title' => t('Advanced'),
-    '#markup' => l(t('Advanced'), 'advanced-search', array()),
-  );
-}
+
+/**
+ * Implements hook_form_FORM_ID_alter()
+ *
+ * Alters the add datastream form to not let the user access the 'Label' field.
+ * Prepends our validation function which copies the filename to the label field.
  */
+function islandora_multilingual_form_islandora_add_datastream_form_alter(&$form, $form_state) {
+    $form['label']['#type'] = 'hidden';
+    $form['label']['#value'] = 'Datastream label';
+    array_unshift($form['#validate'], 'islandora_multilingual_add_datastream_form_validate');
+}
+
+/**
+ * Copies the name of the uploaded file to the label field in add_datastream_form.
+ */
+function islandora_multilingual_add_datastream_form_validate(array &$form, array &$form_state) {
+    $file = file_load($form_state['values']['file']);
+    $form_state['values']['label'] = $file->filename;
+    $form_state['input']['label'] = $file->filename;
+}
+
+
+
 
 /**
  * Implements hook_xml_form_builder_get_transforms().
@@ -269,113 +281,3 @@ function islandora_multilingual_xml_form_builder_get_transforms() {
   return $transforms;
 }
 
-## BELOW THIS APPEARS OBSOLETE
-#
-#//FIXME this probably has different code now. See where validation code lives.
-#/**
-# * Edit form validation.
-# * 
-# * @param $form
-# * @param $form_state
-# */
-#function islandora_multilingual_edit_form_validate($form, &$form_state) {
-#  if ($form_state['storage']['xml']) {
-#    if ($form_state['storage']['step'] == 1) {
-#      $form_state['storage']['step']++;
-#      $form_state['rebuild'] = TRUE;
-#    }
-#  }
-#
-#  // Handle uploaded files.
-#  $arr = array();
-#  /*
-#  if (!empty($types_allowed)) {
-#    foreach ($types_allowed as $type) {
-#      $arr[] = $mimetype->getExtension($type);
-#    }
-#  }
-#  */
-#
-#  if (!empty($_FILES['files']['name']['ingest-file-location'])) {
-#    $file_object = file_save_upload('ingest-file-location', array('file_validate_extensions' => $arr));
-#
-#    if ($file_object) {
-#      $form_state['values']['ingest-file-location'] = $file_object->uri;
-#      $form_state['values']['ingest-file-location-id'] = $file_object->fid;
-#    }
-#  }
-#  $form_state['rebuild'] = FALSE;
-#
-#}
-#
-#
-#//FIXME again, this submit code needs to be way different. 
-#function islandora_multilingual_edit_form_submit($form, &$form_state) {
-#    // Only submit the form if the submit button was pressed (other buttons may be used for AJAX)
-#  if (!$form_state['submitted']) {
-#    return;
-#  }
-#
-#  module_load_include('inc', 'xml_form_api', 'XMLForm');
-#  module_load_include('inc', 'islandora_content_model_forms', 'includes/ingest.form');
-#  global $base_url, $user;
-#  
-#  $pid = $form_state['values']['pid'];
-#  $dsid = $form_state['values']['dsid'];
-#  $form_name = $form_state['values']['forms'];
-#  $content_model_pid = $form_state['values']['content_model_pid'];
-#  $label_field = islandora_content_model_get_title_field($content_model_pid, $form_name);
-#  eval('$label = $form_state[\'values\']' . $label_field . ';'); // change the fedora label.
-#  
-#  $xml_form = new XMLForm($form_state);
-#  $doc = $xml_form->submit($form, $form_state);
-#  $document = $doc->document; // create an xml document out of the form??
-#  
-#  $object = islandora_object_load($pid);
-#  $object->label = $label;
-#  
-#  $xml_ds = $object[$dsid];
-#  $xml_ds->setContentFromString($document->saveXML());
-#  
-#  // transform to dc
-#  $transform = islandora_content_model_get_transform($content_model_pid, $form_name);
-#  $dc_doc = islandora_content_model_forms_transform_document($transform, $document, $object);
-#  $dc_ds = $object['DC'];
-#  $dc_ds->setContentFromString($dc_doc->saveXML());
-#  
-#
-#  /*** Added by Rosie to let the edit form upload a file ***/
-#  $uploaded_file = isset($form_state['values']['ingest-file-location']) && trim($form_state['values']['ingest-file-location']) !== '';
-#  $ingest_file_location = $uploaded_file ? $form_state['values']['ingest-file-location'] : " NOPE";
-#  $file_dsid = isset($form_state['values']['ingest-file-datastream-id']) ? trim($form_state['values']['ingest-file-datastream-id']) : 'OBJ';
-#  if (isset($ingest_file_location)) {
-#    $ingest_file_location = is_array($ingest_file_location) ? $ingest_file_location : array($file_dsid => $ingest_file_location);
-#  }
-#
-#  islandora_content_model_forms_ingest_files($ingest_file_location, $object);
-#  
-#/*
-#  $string = '<test><title>Boo!' . $ingest_file_location .'</title>'. $form_state['values']['ingest-file-location'] . '</test>';	
-#  if (!isset($object['test'])) {
-#    $ds = $object->constructDatastream('test', 'X');
-#    $ds->label = 'My Test Datastream';
-#    $ds->setContentFromString($string);
-#    $ds->mimetype = 'text/xml';
-#    $object->ingestDatastream($ds);
-#  }
-#  else {
-#    $object['test']->setContentFromString($string);
-#  }
-#
-#*/
-#  $form_state['storage'] = NULL;
-#  $form_state['redirect'] = 'islandora/object/' . $pid;
-# 
-#  if (isset($form_state['values']['ingest-file-location-id'])) {
-#    file_delete(file_load($form_state['values']['ingest-file-location-id']));
-#  }
-#
-#}
-#
-#
-#

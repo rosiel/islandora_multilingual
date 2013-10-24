@@ -107,6 +107,64 @@ function multilingual_create_multiple_metadatastreams($object, $datastream) {
  
 }
 
+/*
+ * Synchronize data between MODS datastreams
+ *
+ * @param FedoraObject $object
+ *   The object to synchronize
+ *
+ * @param Fedora[Datastream?] $datastream
+ *   The "master" datastream, containing the information to push to the others.
+ */
+function multilingual_synchronize_mods_datastreams(FedoraObject $object, $master) {
+    $dsid_orig = $master->id;
+    $xml_master = new SimpleXMLElement($master->content);
+    $xml_master->registerXPathNamespace("mods", "http://www.loc.gov/mods/v3");
+
+    # Avoid infinite loops by checking for "master" tag. 
+    $is_master = $xml_master->xpath("/mods:mods/mods:note[@type='master']");
+    if (!empty($is_master) and (string) $is_master[0] == 'no') {
+        return;
+    }
+
+    $languages = explode(',', variable_get('islandora_languages', 'EN,'));
+    $languages_to_set = array_diff($languages, array(substr($dsid_orig, -2  )));
+    foreach ($languages_to_set as $language) {
+        $slave = $object['MODS-' . $language];
+        if ((strtotime($master->createdDate) - strtotime($slave->createdDate)) > 30) {
+            multilingual_sync_xml($master, $slave);
+        }
+        else {
+        }
+    }
+}
+
+function multilingual_sync_xml($master, $slave) {
+    $xml_master = new SimpleXMLElement($master->content);
+    $xml_master->registerXPathNamespace("mods", "http://www.loc.gov/mods/v3");
+    $xml_slave = new SimpleXMLElement($slave->content);
+    $xml_slave->registerXPathNamespace("mods", "http://www.loc.gov/mods/v3");
+
+    # mark synchronized datastreams as not "master"
+    # i.e. do not propogate these changes when this datastream is updated.
+    # See multilingual_synchronize_mods_datastreams().
+    $synced = $xml_slave->xpath('/mods:mods/mods:note[@type="master"]');
+    if (empty($synced)) {
+        $synced = $xml_slave->addChild('mods:note', 'no');
+        $synced->addAttribute('type', 'master');
+    } 
+    else {
+        $synced[0][0] = 'no';
+    }
+    # Sync date field
+    # Sync keywords
+    # Sync authors
+    #
+    # Save slave xml as datastream.
+    $slave->setContentFromString($xml_slave->asXML());
+    
+}
+    
 /**
  * Creates all the derivatives for this content model type
  *
