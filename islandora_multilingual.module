@@ -281,3 +281,18 @@ function islandora_multilingual_xml_form_builder_get_transforms() {
   return $transforms;
 }
 
+function islandora_multilingual_xml_form_builder_get_self_transforms() {
+  $p = drupal_get_path('module', 'islandora_multilingual');
+  $transforms = array();
+  $include_path = "$p/self_transforms";
+  $dir = opendir($include_path);
+  if ($dir !== FALSE) {
+    while (($file = readdir($dir)) !== FALSE) {
+      if (preg_match('/\.xslt?$/', $file)) {
+        $transforms["$file"] = "$include_path/$file";
+      }
+    }
+  }
+  closedir($dir);
+  return $transforms;
+}
