@@ -1,7 +1,6 @@
 <?php
 
 function islandora_multilingual_solr_autocomplete($solr_field, $string) {
-#    $solr_field = 'mods_publisher_ms_EN';
     $values = islandora_multilingual_get_solr_values($solr_field);
     $autocomplete_values = array();
     foreach ($values as $value) {
@@ -24,7 +23,6 @@ function islandora_multilingual_get_solr_values($solr_field) {
         $values = array();
     }
     return $values;
-    
 }
 
 function islandora_multilingual_query_solr($solr_field) {
@@ -37,7 +35,7 @@ function islandora_multilingual_query_solr($solr_field) {
 
     try {
         $solr_query = '*:*';
-        $params = array('facet' => 'on', 'facet.field' => $solr_field);
+        $params = array('facet' => 'on', 'facet.field' => $solr_field, 'fq' => 'rels.isMemberOfCollection:"pubs:collection"');
         $results = $solr->search($solr_query, 0, 1, $params);
     } catch (Exception $e) {
         drupal_set_message('autocomplete failed to query solr' . ' ' . $e->getMessage());
@@ -46,6 +44,29 @@ function islandora_multilingual_query_solr($solr_field) {
 
     return $results;
 } 
+
+function islandora_multilingual_vocabulary_autocomplete($vocab_set, $lang, $string) {
+    $values = islandora_multilingual_get_vocabulary_values($vocab_set, $lang);
+    $autocomplete_values = array();
+    foreach ($values as $value) {
+        if (preg_match("/{$string}/i", $value) !== 0) {
+            $autocomplete_values[$value] = $value;
+        }
+    }
+    return drupal_json_output($autocomplete_values);
+}
+
+function islandora_multilingual_get_vocabulary_values($vocab_set, $lang) {
+    module_load_include('inc', 'islandora_multilingual', 'includes/Multilingual');
+    $results = array();
+    $results = multilingual_get_vocabulary_values($vocab_set);
+    $output = array();
+    foreach($results as $result) {
+        $output[] = $result[$lang];
+    }
+    return $output;
+}
+
 
 function islandora_multilingual_file_autocomplete($token, $string) {
     switch ($token) {

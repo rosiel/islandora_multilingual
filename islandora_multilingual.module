@@ -14,17 +14,27 @@
  * Implements hook_menu()
  */
 
+define('ISLANDORA_MULTILINGUAL_TEXTGROUP', 'islandora_multilingual');
+
 function islandora_multilingual_menu() {
   $items = array();
 
   $items['admin/islandora/multilingual'] = array(
-    'title' => 'Multilanguage',
+    'title' => 'Multilingual',
     'description' => t('Administer the multilingual module'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('islandora_multilingual_admin_form'),
     'file' => 'admin/multilingual.admin.inc',
+    'page callback' => 'multilingual_main',
     'access arguments' => array('administer site configuration'),
     'type' => MENU_NORMAL_ITEM,
+);
+
+  $items['admin/islandora/multilingual/refresh'] = array(
+      'title' => 'Reset vocabulary strings',
+      'description' => 'Reset to default translations strings',
+      'file' => 'admin/multilingual.admin.inc',
+      'page callback' => 'multilingual_reset',
+      'access arguments' => array('administer site configuration'),
+      'type' => MENU_LOCAL_ACTION,
   );
 
   // non-multilingual configuration: the "add" tab
@@ -58,6 +68,16 @@ function islandora_multilingual_menu() {
       'access callback' => 'user_is_logged_in',
       'type' => MENU_CALLBACK,
   );
+  // non-multilingual configuration: autocomplete path for translated vocab
+  $items['admin/islandora_multilingual/vocab_autocomplete'] = array(
+      'title' => 'autocomplete callback for vocab',
+      'description' => 'Autocomplete from translation strings in a text group in a given language',
+      'file' => 'includes/autocomplete.inc',
+      'page callback' => 'islandora_multilingual_vocabulary_autocomplete',
+      'page arguments' => array(3,4,5),
+      'access callback' => 'user_is_logged_in', 
+      'type' => MENU_CALLBACK,
+  );
 
   return $items;
 }
@@ -73,6 +93,20 @@ function islandora_multilingual_variable_info() {
     'description' => t('Languages in which Islandora objects should be sought. This is the upper-case version of the language code in Drupal.'),
     'type' => 'string',
   );
+}
+
+/**
+ * Implements hook_i18n_string_info().
+ */
+function islandora_multilingual_i18n_string_info() {
+    return array(
+        'islandora_multilingual' => array(
+            'title' => t('Islandora Multilingual'),
+            'description' => t('Translatable controlled vocabulary'),
+            'format' => FALSE,
+            'list' => TRUE,
+        ),
+    );
 }
 
 /**
@@ -154,7 +188,6 @@ function islandora_multilingual_islandora_datastream_modified($object, $datastre
   }
 }
 
-
 /* 
  *  Find a better place for this - it's the permissions function for the Add tab to display.
  * Creates a shortcut "Add object" tab to the item menu for any object with CM islandora:collection
@@ -181,6 +214,7 @@ function islandora_multilingual_process_islandora_default_edit(&$variables) {
         $i = $i + 1;
     }
 }
+
 /**
  * Implements hook_form_alter()
  *
@@ -190,6 +224,8 @@ function islandora_multilingual_process_islandora_default_edit(&$variables) {
 function islandora_multilingual_form_alter(&$form, $form_state, $form_id) {
  if ($form_id == 'xml_form_builder_edit_datastream_form') {
    array_unshift($form['#validate'], 'islandora_multilingual_datastream_form_validate');
+   multilingual_fill_mods_label_field($form, $form_state);
+
  }
  if ($form_id == 'islandora_ingest_form') {
    array_unshift($form['#validate'], 'islandora_multilingual_datastream_form_validate');
@@ -197,6 +233,14 @@ function islandora_multilingual_form_alter(&$form, $form_state, $form_id) {
 
 }
 
+function multilingual_fill_mods_label_field(&$form, $form_state) {
+    if (!isset($form['label']['#default_value']) || $form['label']['#default_value'] == '') {
+        $form['label']['#default_value'] = $form_state['datastream']->parent->label;
+        $form['label']['#access'] = FALSE;
+    }
+        
+    //dpm($form_state['datastream']->
+}
 /*
  * This custom validation function runs after you edit metadata using a mods form
  * either when ingesting or when editing an existing datastream.
@@ -206,15 +250,21 @@ function islandora_multilingual_form_alter(&$form, $form_state, $form_id) {
  * It marks this datastream as "master".
  */
 function islandora_multilingual_datastream_form_validate(array &$form, array &$form_state) {
-    $should_clear = FALSE;
+    if ((($form['#form_id'] == 'islandora_ingest_form') and ($form_state['islandora']['step_id'] == 'xml_form_builder_metadata_step')) or (($form['#form_id'] == 'xml_form_builder_edit_datastream_form') )) {
 
+        //form_set_error('error');
+    }
+
+    // Determine whether the form has been submitted (since validate also runs 
+    // when the user creates/deletes tab form elements) .
+    $form_was_submitted = FALSE;
     if (($form['#form_id'] == 'islandora_ingest_form') and ($form_state['islandora']['step_id'] == 'xml_form_builder_metadata_step') and ($form_state['clicked_button']['#value']  == 'Next')) {
-        $should_clear = TRUE;
+        $form_was_submitted = TRUE;
     } elseif (($form['#form_id'] == 'xml_form_builder_edit_datastream_form') and ($form_state['clicked_button']['#value']  == 'Update')) {
-        $should_clear = TRUE;
+        $form_was_submitted = TRUE;
     } 
 
-    if ($should_clear) {
+    if ($form_was_submitted) {
         // Clear out the unselected keyword and language checkboxes from $form_state['storage'].
         $root = $form_state['storage']['objective_form_storage']['root'];
         foreach ($form_state['values']['Keywords'] as $keyword => $value) {

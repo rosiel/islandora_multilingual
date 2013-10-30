@@ -156,13 +156,23 @@ function multilingual_sync_xml($master, $slave) {
     else {
         $synced[0][0] = 'no';
     }
+
+    # Sync Label field
+    $label_slave = $xml_slave->xpath('/mods:mods/mods:note[@type="label"]');
+    if (empty($label_slave)) {
+        $label_slave[] = $xml_slave->addChild('mods:note');
+        $label_slave[0]->addAttribute('type', 'label');
+    } 
+    $label = $xml_master->xpath('/mods:mods/mods:note[@type="label"]');
+    $label_slave[0][0] = (string) $label[0];
+
+
     # Sync date field
     # Sync keywords
     # Sync authors
     #
     # Save slave xml as datastream.
     $slave->setContentFromString($xml_slave->asXML());
-    
 }
     
 /**
@@ -430,7 +440,6 @@ function getAvailabilityByPid($pid) {
  *   The lower-case code of the desired language. e.g. 'en'. 
  */
 function getTitleByPid($pid, $lang) {
-    module_load_include('inc', 'islandora_multilingual', 'includes/Multilingual');
     $doc = getSolrDocByPid($pid);
     $title_template = 'mods_title_ms_';
     $subtitle_template = 'mods_subTitle_ms_';
@@ -445,4 +454,43 @@ function getTitleByPid($pid, $lang) {
     return $title;
 
 }
+
+function multilingual_get_vocabulary_values($type = '', $reset = FALSE) {
+    // Use a global variable ISLANDORA_MULTILINGUAL_TEXTGROUP plus the type.
+    // Replace the cache_set parameter to equal this textgroup too. 
+
+    $data = &drupal_static('islandora_multilingual::' . $type, NULL, FALSE);
+
+    if (!isset($data)) {
+        if (!$reset && ($cache = cache_get('islandora_multilingual::' . $type)) && !empty($cache->data)) {
+            $data = $cache->data;
+        }
+        else {
+            if (function_exists('i18n_string')) {
+                $tg_object = new i18n_string_textgroup_default('islandora_multilingual');
+                $results = $tg_object->load_strings();
+                foreach ($results as $result) {
+                    $result->get_translation('es');
+                    $result->get_translation('fr');
+                }
+            }
+            $data = array();
+            foreach($results as $result) {
+                if ($result->type == $type) { 
+                    $data[] = array(
+                        'location' => $result->location,
+                        'en' => $result->source, 
+                        'es' => $result->translations['es'] ? $result->translations['es'] : $result->source, 
+                        'fr' => $result->translations['fr'] ? $result->translations['fr'] : $result->source,
+                        'lid' => $result->lid,
+                    );
+                }
+            }
+
+            cache_set('islandora_multilingual::' . $type, $data);
+        }
+    }
+    return $data;
+}
+
 
