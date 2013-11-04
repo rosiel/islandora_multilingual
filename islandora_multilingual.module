@@ -15,6 +15,7 @@
  */
 
 define('ISLANDORA_MULTILINGUAL_TEXTGROUP', 'islandora_multilingual');
+define('ISLANDORA_MULTILINGUAL_CMODEL', 'islandora:CEC_multilingual');
 
 function islandora_multilingual_menu() {
   $items = array();
@@ -218,19 +219,19 @@ function islandora_multilingual_process_islandora_default_edit(&$variables) {
 /**
  * Implements hook_form_alter()
  *
- * points to our submit and validate methods instead of the islandora ones.
- * This only affects it when called as the "edit" form, not the "ingest" form.
+ * Adds our custom validate function to the metadata forms (ingest and edit), when the content model is our content model.
+ * Also load the Fedora label into the MODS data, if not already present (edit form only)
  */
 function islandora_multilingual_form_alter(&$form, $form_state, $form_id) {
- if ($form_id == 'xml_form_builder_edit_datastream_form') {
+ if ($form_id == 'xml_form_builder_edit_datastream_form' and in_array(ISLANDORA_MULTILINGUAL_CMODEL, $form_state['datastream']->parent->models)) {
    array_unshift($form['#validate'], 'islandora_multilingual_datastream_form_validate');
    multilingual_fill_mods_label_field($form, $form_state);
-
  }
- if ($form_id == 'islandora_ingest_form') {
-   array_unshift($form['#validate'], 'islandora_multilingual_datastream_form_validate');
+ if ($form_id == 'islandora_ingest_form' and isset($form_state['islandora']['objects'])) {
+     if (isset($form_state['islandora']['objects'][0]) and in_array(ISLANDORA_MULTILINGUAL_CMODEL, $form_state['islandora']['objects'][0]->models)) {
+         array_unshift($form['#validate'], 'islandora_multilingual_datastream_form_validate');
+     }
  }
-
 }
 
 function multilingual_fill_mods_label_field(&$form, $form_state) {
@@ -248,6 +249,7 @@ function multilingual_fill_mods_label_field(&$form, $form_state) {
  * It clears the unselected checkbox elements (so as to not write their nodes)
  *
  * It marks this datastream as "master".
+ * 
  */
 function islandora_multilingual_datastream_form_validate(array &$form, array &$form_state) {
     if ((($form['#form_id'] == 'islandora_ingest_form') and ($form_state['islandora']['step_id'] == 'xml_form_builder_metadata_step')) or (($form['#form_id'] == 'xml_form_builder_edit_datastream_form') )) {
@@ -273,7 +275,7 @@ function islandora_multilingual_datastream_form_validate(array &$form, array &$f
             unset($root->children['Keywords']->children[$keyword]);
           }
         }
-        if ($form_state['values']['Language'] == '0') {
+        if (isset($form_state['values']['Language']) and $form_state['values']['Language'] == '0') {
             unset($root->children['Language']);
         }
 
