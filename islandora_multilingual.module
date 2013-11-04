@@ -16,6 +16,7 @@
 
 define('ISLANDORA_MULTILINGUAL_TEXTGROUP', 'islandora_multilingual');
 define('ISLANDORA_MULTILINGUAL_CMODEL', 'islandora:CEC_multilingual');
+define('DEBUG', FALSE);
 
 function islandora_multilingual_menu() {
   $items = array();
@@ -169,10 +170,18 @@ function islandora_multilingual_islandora_CEC_multilingual_islandora_ingest_step
  * If an OBJ ds was ingested, create the thumbnails.
  */
 function islandora_multilingual_islandora_datastream_ingested($object, $datastream) {
+    if (DEBUG) {
+        $dss = array();
+        foreach ($object as $ds) {
+            $dss[] = $ds->id;
+        }
+        watchdog('multilingual', 'start hook ingested for:' . $datastream->id . ' with datastreams '. implode($dss, ' '));
+    }
   module_load_include('inc', 'islandora_multilingual', 'includes/Multilingual');
   if (preg_match('/MODS-/', $datastream->id) === 1) {
     $missing_ds = !(isset($object['MODS-EN']) and isset($object['MODS-ES']) and isset($object['MODS-FR']));
     if ($missing_ds) {
+      sleep(2);
       multilingual_create_multiple_metadatastreams($object, $datastream);
       multilingual_synchronize_mods_datastreams($object, $datastream);
     } 
@@ -185,6 +194,9 @@ function islandora_multilingual_islandora_datastream_ingested($object, $datastre
 function islandora_multilingual_islandora_datastream_modified($object, $datastream) {
   module_load_include('inc', 'islandora_multilingual', 'includes/Multilingual');
   if (preg_match('/MODS-/', $datastream->id) === 1) {
+      if(DEBUG) {
+          watchdog('multilingual', 'hook modified ran for ds: '.$datastream->id);
+      }
     multilingual_synchronize_mods_datastreams($object, $datastream);
   }
 }
@@ -231,14 +243,13 @@ function islandora_multilingual_form_alter(&$form, $form_state, $form_id) {
      if (isset($form_state['islandora']['objects'][0]) and in_array(ISLANDORA_MULTILINGUAL_CMODEL, $form_state['islandora']['objects'][0]->models)) {
          array_unshift($form['#validate'], 'islandora_multilingual_datastream_form_validate');
      }
+     $form['originInfo']['dateIssued']['#required'] = TRUE;
  }
 }
 
 function multilingual_fill_mods_label_field(&$form, $form_state) {
-    if (!isset($form['label']['#default_value']) || $form['label']['#default_value'] == '') {
-        $form['label']['#default_value'] = $form_state['datastream']->parent->label;
-        $form['label']['#access'] = FALSE;
-    }
+    $form['label']['#default_value'] = $form_state['datastream']->parent->label;
+    $form['label']['#access'] = FALSE;
         
     //dpm($form_state['datastream']->
 }

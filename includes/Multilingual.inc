@@ -77,6 +77,9 @@ function italics($string) {
  */
 
 function multilingual_create_multiple_metadatastreams($object, $datastream) {
+    if(DEBUG) {
+        watchdog('sync', 'create multiple from '.$datastream->id);
+    }
  $languages = explode(',', variable_get('islandora_languages', 'EN, '));
  $dsid_orig = NULL;
  $module_path = drupal_get_path('module', 'islandora_multilingual');
@@ -86,7 +89,7 @@ function multilingual_create_multiple_metadatastreams($object, $datastream) {
    return "";
  }
 
- $languages_to_set = array_diff($languages, array($dsid_orig));
+ $languages_to_set = array_diff($languages, array(substr($dsid_orig, -2)));
 
  foreach ($languages_to_set as $language) {
    try {
@@ -123,7 +126,10 @@ function multilingual_synchronize_mods_datastreams(FedoraObject $object, $master
 
     # Avoid infinite loops by checking for "master" tag. 
     $is_master = $xml_master->xpath("/mods:mods/mods:note[@type='master']");
-    if (!empty($is_master) and (string) $is_master[0] == 'no') {
+    if (empty($is_master) or (string) $is_master[0] == 'no') {
+        if (DEBUG) {
+            watchdog('multilingual', 'skipped on account that '.$master->id . ' is not master.');
+        }
         return;
     }
 
@@ -131,10 +137,14 @@ function multilingual_synchronize_mods_datastreams(FedoraObject $object, $master
     $languages_to_set = array_diff($languages, array(substr($dsid_orig, -2  )));
     foreach ($languages_to_set as $language) {
         $slave = $object['MODS-' . $language];
-        if ((strtotime($master->createdDate) - strtotime($slave->createdDate)) > 30) {
+        if (abs(strtotime($master->createdDate) - strtotime($slave->createdDate)) > 1) {
             multilingual_sync_xml($master, $slave);
+            watchdog('multilingual', "synchronized $language from " . $master->id);
         }
         else {
+            if (DEBUG) {
+                watchdog('multilingual', 'skipped on account of time diff with '. $slave->id);
+            }
         }
     }
 }
@@ -168,6 +178,25 @@ function multilingual_sync_xml($master, $slave) {
 
 
     # Sync date field
+    $date_slave = $xml_slave->xpath('/mods:mods/mods:originInfo/mods:dateIssued[@keyDate="yes"]');
+    if (empty($date_slave)) {
+        $origin_slave = $xml_slave->xpath('/mods:mods/mods:originInfo');
+        if (empty($origin_slave)) {
+            $origin_slave = $xml_slave->addChild('mods:originInfo');
+        } 
+        else {
+            $origin_slave = $origin_slave[0];
+        }
+        $date_slave = $origin_slave->addChild('mods:dateIssued');
+        $date_slave->addAttribute('keyDate', 'yes');
+    }
+    else {
+        $date_slave = $date_slave[0];
+    }
+    $date = $xml_master->xpath('/mods:mods/mods:originInfo/mods:dateIssued[@keyDate="yes"]');
+    $date_slave[0] = (string) $date[0];
+
+    #
     # Sync keywords
     # Sync authors
     #
