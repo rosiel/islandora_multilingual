@@ -208,6 +208,9 @@ function islandora_multilingual_islandora_datastream_modified($object, $datastre
  */
 
 function modified_collection_add_access($object = NULL) { 
+    if (!is_object($object)) {
+        return FALSE;
+    }
     module_load_include('module', 'islandora_basic_collection', '');
     return islandora_basic_collection_ingest_access($object);
 }
