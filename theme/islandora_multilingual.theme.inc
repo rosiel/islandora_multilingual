@@ -16,6 +16,7 @@
 function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
   drupal_add_js('misc/form.js');
   drupal_add_js('misc/collapse.js');
+  drupal_add_js(drupal_get_path('module', 'islandora_multilingual') . '/js/ga.js');
   drupal_add_css(drupal_get_path('module', 'islandora_multilingual') . '/css/islandora_multilingual.theme.css');
   $islandora_object = $variables['islandora_object'];
   $repository = $islandora_object->repository;

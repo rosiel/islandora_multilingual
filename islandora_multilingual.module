@@ -139,13 +139,29 @@ function islandora_multilingual_theme($existing, $type, $theme, $path) {
 
 /**
  * Implements hook_CMODEL_PID_islandora_view_object().
- * FIXME this might be a good place to pass the language string...
  */
 function islandora_multilingual_islandora_CEC_multilingual_islandora_view_object($object, $page_number, $page_size) {
-  $output = theme('islandora_multilingual', array('islandora_object' => $object));
-  return array('Multilingual View' => $output);
+    $result = array();
+    $workflow = islandora_custom_workflow($object);
+    if ($workflow) {
+        $result['publish'] = $workflow;
+    }
+    $result['Multilingual View'] = theme('islandora_multilingual', array('islandora_object' => $object));
+    
+    return $result;
 }
 
+
+function islandora_custom_workflow($object) {
+    if (isset($object['POLICY']) and !islandora_object_access(FEDORA_VIEW_OBJECTS, $object, user_load(0))) {
+        if (islandora_object_manage_access_callback(FEDORA_PURGE, $object)) {
+            $delete_link = l(t('Click here to publish this document to the public.'), "islandora/object/{$object->id}/datastream/POLICY/delete");
+        } else {
+            $delete_link = t('You do not have sufficient permissions to publish this document.');
+        }
+        return '<div class="notice">' . t('This document is not visible to the public. ' . $delete_link . '</div>');
+    }
+}
 /**
  * Implements hook_islandora_ingest_steps().
  * though actually hook_islandora_CMODEL_PID_islandora_ingest_steps().
@@ -211,6 +227,10 @@ function modified_collection_add_access($object = NULL) {
     if (!is_object($object)) {
         return FALSE;
     }
+    if (! islandora_object_access_callback(FEDORA_VIEW_OBJECTS, $object)) {
+        return FALSE;
+    }
+    
     module_load_include('module', 'islandora_basic_collection', '');
     return islandora_basic_collection_ingest_access($object);
 }
@@ -248,6 +268,9 @@ function islandora_multilingual_form_alter(&$form, $form_state, $form_id) {
      }
      $form['originInfo']['dateIssued']['#required'] = TRUE;
  }
+ if ($form_id == 'islandora_xacml_editor_form') {
+     $form['access']['#description'] = t('WARNING: do NOT enable view restrictions, then give them to "anonymous" or "anonymous user". If you want logged-out users to see this object, disable view restrictions.');
+ }  
 }
 
 function multilingual_fill_mods_label_field(&$form, $form_state) {
