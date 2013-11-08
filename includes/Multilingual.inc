@@ -452,6 +452,7 @@ function getAvailabilityByPid($pid) {
       $OBJ_langs[$lang_name] = array(
           'title' => $lang_name,
           'href' => $url,
+          'attributes' => array('onClick' => "ga('send', 'event', 'PDFs', 'Download', '$pid');"),
       );
 	  
   }

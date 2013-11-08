@@ -267,9 +267,12 @@ function islandora_multilingual_form_alter(&$form, $form_state, $form_id) {
          array_unshift($form['#validate'], 'islandora_multilingual_datastream_form_validate');
      }
      $form['originInfo']['dateIssued']['#required'] = TRUE;
+     $form['#attached']['js'] = array(drupal_get_path('module', 'islandora_multilingual') . '/js/updatelabel.js' => array( 'type' => 'file'));
+     $form['titleInfo']['title']['#attributes']['onblur'] = "updatelabel();";
+     $form['titleInfo']['subTitle']['#attributes']['onblur'] = "updatelabel();";
  }
  if ($form_id == 'islandora_xacml_editor_form') {
-     $form['access']['#description'] = t('WARNING: do NOT enable view restrictions, then give them to "anonymous" or "anonymous user". If you want logged-out users to see this object, disable view restrictions.');
+     $form['access']['#description'] = t('WARNING: do NOT enable view restrictions, then give permission to "anonymous" or "anonymous user". If you want logged-out users to see this object, disable view restrictions.');
  }  
 }
 
