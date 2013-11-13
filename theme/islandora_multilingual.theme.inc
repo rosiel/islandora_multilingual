@@ -100,7 +100,7 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
     'mods_name_ctb_ms_' => array('label' => t('Contributors'), 'weight' => 0.2),
     'mods_publisher_ms_' => array('label' => t('Publisher'), 'weight' => 0.3),
     'mods_dateIssued_ms_' => array('label' => t('Date of Publication'), 'weight' => 0.4),
-    'mods_abstract_ms_' => array('label' => t('Description'), 'weight' => 0.7),
+    'mods_abstract_ms_' => array('label' => t('Abstract'), 'weight' => 0.7),
     'mods_subject_topic_Keyword_ms_' => array('label' => t('Themes'), 'weight' => 0.6),
     'mods_subject_topic_Topic_ms_' => array('label' => t('Keywords'), 'weight' => 0.65),
     'mods_subject_meeting_ms_' => array('label' => t('Conference'), 'weight' => 0.67),
