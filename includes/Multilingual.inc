@@ -136,72 +136,120 @@ function multilingual_synchronize_mods_datastreams(FedoraObject $object, $master
     $languages = explode(',', variable_get('islandora_languages', 'EN,'));
     $languages_to_set = array_diff($languages, array(substr($dsid_orig, -2  )));
     foreach ($languages_to_set as $language) {
-        $slave = $object['MODS-' . $language];
-        if (abs(strtotime($master->createdDate) - strtotime($slave->createdDate)) > 1) {
-            multilingual_sync_xml($master, $slave);
+        $sheep = $object['MODS-' . $language];
+        if (abs(strtotime($master->createdDate) - strtotime($sheep->createdDate)) > 1) {
+            multilingual_sync_xml($master, $sheep);
             watchdog('multilingual', "synchronized $language from " . $master->id);
         }
         else {
             if (DEBUG) {
-                watchdog('multilingual', 'skipped on account of time diff with '. $slave->id);
+                watchdog('multilingual', 'skipped on account of time diff with '. $sheep->id);
             }
         }
     }
 }
 
-function multilingual_sync_xml($master, $slave) {
-    $xml_master = new SimpleXMLElement($master->content);
-    $xml_master->registerXPathNamespace("mods", "http://www.loc.gov/mods/v3");
-    $xml_slave = new SimpleXMLElement($slave->content);
-    $xml_slave->registerXPathNamespace("mods", "http://www.loc.gov/mods/v3");
+function multilingual_sync_xml($ds_master, $ds_sheep) {
+    define(MODS, "http://www.loc.gov/mods/v3");
 
-    # mark synchronized datastreams as not "master"
-    # i.e. do not propogate these changes when this datastream is updated.
-    # See multilingual_synchronize_mods_datastreams().
-    $synced = $xml_slave->xpath('/mods:mods/mods:note[@type="master"]');
-    if (empty($synced)) {
-        $synced = $xml_slave->addChild('mods:note', 'no');
-        $synced->addAttribute('type', 'master');
-    } 
+    $xml_master = new DOMDocument();
+    $xml_master->loadXML($ds_master->content);
+    $xml_sheep= new DOMDocument();
+    $xml_sheep->loadXML($ds_sheep->content);
+
+    $mods_m = $xml_master->documentElement;
+    $mods_s = $xml_sheep->documentElement;
+
+    $xpath_m = new DOMXpath($xml_master);
+    $xpath_m->registerNamespace("mods", "http://www.loc.gov/mods/v3");
+    $xpath_s = new DOMXpath($xml_sheep);
+    $xpath_s->registerNamespace("mods", "http://www.loc.gov/mods/v3");
+    // Note: All documentation suggests that using namespaces in DOMXpath is necessary,
+    // but in this case it only works without it. 
+
+
+    # Mark the synchronized (sheep) datastreams as "not master".
+    $synced = $xpath_s->query('/mods:mods/mods:note[@type="master"]');
+    if ($synced->length == 0) {
+        $synced = $xml_sheep->createElementNS(MODS, 'note');
+        $synced->setAttribute('type', 'master');
+        $synced->nodeValue = 'no';
+        $mods_s->appendChild($synced);
+    }
     else {
-        $synced[0][0] = 'no';
+        $synced->item(0)->nodeValue = 'no';
     }
 
+    # Sync label field. 
+    $label_list_m = $xpath_m->query('/mods:mods/mods:note[@type="label"]');
+    if ($label_list_m->length > 0) {
+        $label_list_s = $xpath_s->query('/mods:mods/mods:note[@type="label"]');
+        if ($label_list_s->length == 0) {
+            $label_s = $xml_sheep->createElementNS(MODS, 'note');
+            $label_s->setAttribute('type', 'label');
+            $label_s->nodeValue = $label_list_m->item(0)->nodeValue;
+            $mods_s->appendChild($label_s);
+        }
+        else {
+            $label_list_s->item(0)->nodeValue = $label_list_m->item(0)->nodeValue;
+        }
+    }
+
+
+
+    //==============================================
+    /*
+    $xml_master = new SimpleXMLElement($master->content);
+    $xml_master->registerXPathNamespace("mods", "http://www.loc.gov/mods/v3");
+    $xml_sheep = new SimpleXMLElement($sheep->content);
+    $xml_sheep->registerXPathNamespace("mods", "http://www.loc.gov/mods/v3");
+
+
     # Sync Label field
-    $label_slave = $xml_slave->xpath('/mods:mods/mods:note[@type="label"]');
-    if (empty($label_slave)) {
-        $label_slave[] = $xml_slave->addChild('mods:note');
-        $label_slave[0]->addAttribute('type', 'label');
+    $label_sheep = $xml_sheep->xpath('/mods:mods/mods:note[@type="label"]');
+    if (empty($label_sheep)) {
+        $label_sheep[] = $xml_sheep->addChild('mods:note');
+        $label_sheep[0]->addAttribute('type', 'label');
     } 
     $label = $xml_master->xpath('/mods:mods/mods:note[@type="label"]');
-    $label_slave[0][0] = (string) $label[0];
+    $label_sheep[0][0] = (string) $label[0];
 
 
     # Sync date field
-    $date_slave = $xml_slave->xpath('/mods:mods/mods:originInfo/mods:dateIssued[@keyDate="yes"]');
-    if (empty($date_slave)) {
-        $origin_slave = $xml_slave->xpath('/mods:mods/mods:originInfo');
-        if (empty($origin_slave)) {
-            $origin_slave = $xml_slave->addChild('mods:originInfo');
+    $date_sheep = $xml_sheep->xpath('/mods:mods/mods:originInfo/mods:dateIssued[@keyDate="yes"]');
+    if (empty($date_sheep)) {
+        $origin_sheep = $xml_sheep->xpath('/mods:mods/mods:originInfo');
+        if (empty($origin_sheep)) {
+            $origin_sheep = $xml_sheep->addChild('mods:originInfo');
         } 
         else {
-            $origin_slave = $origin_slave[0];
+            $origin_sheep = $origin_sheep[0];
         }
-        $date_slave = $origin_slave->addChild('mods:dateIssued');
-        $date_slave->addAttribute('keyDate', 'yes');
+        $date_sheep = $origin_sheep->addChild('mods:dateIssued');
+        $date_sheep->addAttribute('keyDate', 'yes');
     }
     else {
-        $date_slave = $date_slave[0];
+        $date_sheep = $date_sheep[0];
     }
     $date = $xml_master->xpath('/mods:mods/mods:originInfo/mods:dateIssued[@keyDate="yes"]');
-    $date_slave[0] = (string) $date[0];
+    $date_sheep[0] = (string) $date[0];
 
     #
     # Sync keywords
     # Sync authors
+    $authors_master = $xml_master->xpath('/mods:mods/mods:name[@type="personal"]');
+    $authors_sheep = $xml_sheep->xpath('/mods:mods/mods:name[@type="personal"]');
+    $counter = 0;
+    foreach ($authors_master as $author) {
+        $a = 1;
+    }
+     */
+
     #
-    # Save slave xml as datastream.
-    $slave->setContentFromString($xml_slave->asXML());
+    # Sync document type
+    #
+    # Save sheep xml as datastream.
+    $ds_sheep->setContentFromString($xml_sheep->asXML());
 }
     
 /**
