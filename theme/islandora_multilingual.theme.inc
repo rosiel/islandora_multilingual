@@ -299,7 +299,7 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
   $field = chooseLanguage($doc, $field);
   if ($field) {
 	  $brief_metadata[] = array(
-		  'label' => t('Description:'),
+		  'label' => t('Abstract:'),
 		  'class' => 'mods-abstract',
 		  'value' => $doc[$field][0],
 	  );
