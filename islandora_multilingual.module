@@ -10,13 +10,13 @@
  * Module relating to the CEC_multilingual object model
  */
 
-/** 
- * Implements hook_menu()
- */
-
 define('ISLANDORA_MULTILINGUAL_TEXTGROUP', 'islandora_multilingual');
 define('ISLANDORA_MULTILINGUAL_CMODEL', 'islandora:CEC_multilingual');
 define('DEBUG', FALSE);
+
+/** 
+ * Implements hook_menu()
+ */
 
 function islandora_multilingual_menu() {
   $items = array();
@@ -38,6 +38,24 @@ function islandora_multilingual_menu() {
       'access arguments' => array('administer site configuration'),
       'type' => MENU_LOCAL_ACTION,
   );
+    $items['admin/islandora/multilingual/languages'] = array(
+      'title' => 'Set languages',
+      'description' => 'Choose languages for Multilingual Islandora to enable',
+      'file' => 'admin/multilingual.admin.inc',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_multilingual_admin_form'),
+      'access arguments' => array('administer site configuration'),
+      'type' => MENU_NORMAL_ITEM,
+  );
+
+    $items['admin/islandora/multilingual/test'] = array(
+      'title' => 'Test page',
+      'description' => 'Please ignore.',
+      'file' => 'admin/multilingual.admin.inc',
+      'page callback' => 'test',
+      'access arguments' => array('administer site configuration'),
+      'type' => MENU_NORMAL_ITEM,
+  );
 
   // non-multilingual configuration: the "add" tab
   $items['islandora/object/%islandora_object/add'] = array(
@@ -50,6 +68,7 @@ function islandora_multilingual_menu() {
     'access callback' => 'modified_collection_add_access',
     'access arguments' => array(2),
   );
+
   // non-multilingual configuration: autocomplete paths
   $items['admin/islandora_multilingual/solr_autocomplete'] = array(
       'title' => 'autocomplete callback',
@@ -84,7 +103,81 @@ function islandora_multilingual_menu() {
   return $items;
 }
 
+function islandora_multilingual_islandora_overview_object(AbstractObject $object) {
+    $output = array();
+    include_once DRUPAL_ROOT . '/includes/iso.inc';
+    $language_list = _locale_get_predefined_list();
+    
+    $mods_rows = array();
+    foreach ($object as $datastream) {
+        if (preg_match('/MODS/', $datastream->id) === 1) {
+            $langcode = strtolower(substr($datastream->id, -2));
+            if (isset($language_list[$langcode])) {
+                $lang_string = $language_list[$langcode][0];
+            }
+            else {
+                $lang_string = $datastream->id;
+            }
+            $mods_rows[] = array(l("Edit details in $lang_string", "islandora/object/{$object->id}/datastream/{$datastream->id}/edit"));
+        }
+    }
+    $output['z-metadata'] =  theme('table', array(
+        'header' => array(t('MODS datastreams')),
+        'rows' => $mods_rows,
+        'empty' => 'No MODS datastreams found.',
+    ));
 
+    $obj_rows = array();
+    $languages = explode(',', variable_get('islandora_languages', 'EN,ES,FR'));
+    foreach ($languages as $lang) {
+        if (isset($language_list[strtolower($lang)])) {
+            $lang_string = $language_list[strtolower($lang)][0];
+        }
+        else {
+            $lang_string = $lang;
+        }
+        if (isset($object['OBJ-' . $lang])) {
+            $ds = $object['OBJ-' . $lang];
+            $obj_rows[] = array($lang_string, $ds->label, format_date(strtotime($ds->createdDate), 'long'), format_size($ds->size), l('Delete', "islandora/object/{$object->id}/datastream/{$ds->id}/delete"));
+        }
+        else {
+            $obj_rows[] = array(l("Add a PDF in $lang_string", "islandora/object/{$object->id}/manage/datastreams/add", array('query' => array('edit[dsid]' => 'OBJ-' . $lang))), '', '', '', '');
+        }   
+    }
+    $output['y-objects'] = theme('table', array(
+        'header' => array(t('PDF Language'), t('Filename'), t('Uploaded'), t('Size'), ''),
+        'rows' => $obj_rows,
+    ));
+
+    $tn_rows = array();
+    foreach ($languages as $lang) {
+        if (isset($language_list[strtolower($lang)])) {
+            $lang_string = $language_list[strtolower($lang)][0];
+        }
+        else {
+            $lang_string = $lang;
+        }
+        if (isset($object['TN-' . $lang])) {
+            $ds = $object['TN-' . $lang];
+            $tn_rows[] = array($lang_string, theme('image', array('path' => "islandora/object/{$object->id}/datastream/{$ds->id}/view", 'height' => 100)), l("Delete", "islandora/object/{$object->id}/datastream/{$ds->id}/delete"));
+        } 
+        else {
+            $tn_rows[] = array(l("Add a thumbnail in $lang_string", "islandora/object/{$object->id}/manage/datastreams/add", array('query' => array('edit[dsid]' => 'TN-' . $lang))), '', '');
+        }
+    }
+
+    $output['x-thumbnail'] = theme('table', array(
+        'header' => array('Thumbnail Language', 'Image', 'Actions'),
+        'rows' => $tn_rows,
+    )   );
+
+    return $output;
+}
+
+function islandora_multilingual_islandora_overview_object_alter($object, &$output) {
+    krsort($output);
+    return $output;
+}
 /** 
  * Implements hook_variable_info()
  */
@@ -150,6 +243,7 @@ function islandora_multilingual_islandora_CEC_multilingual_islandora_view_object
     
     return $result;
 }
+
 
 
 function islandora_custom_workflow($object) {

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mods xmlns="http://www.loc.gov/mods/v3" xmlns:fn="http://www.w3.org/2005/xpath-functions" xmlns:mods="http://www.loc.gov/mods/v3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <genre authority="local" type="class">Project report</genre>
+  <titleInfo>
+    <title>Henry and the inconceivable telephone</title>
+    <subTitle>a story of change</subTitle>
+    <partName>part 2</partName>
+  </titleInfo>
+  <note type="label">Henry and the inconceivable telephone</note>
+  <titleInfo type="alternative">
+    <title>henrysauce</title>
+    <subTitle>jacobson</subTitle>
+  </titleInfo>
+  <name type="personal">
+    <role>
+      <roleTerm authority="marcrelator" type="code">aut</roleTerm>
+    </role>
+    <namePart>Janice J. Watson</namePart>
+  </name>
+  <name type="personal">
+    <role>
+      <roleTerm authority="marcrelator" type="code">aut</roleTerm>
+    </role>
+    <namePart>Jones, P. J. </namePart>
+  </name>
+  <originInfo>
+    <publisher>Commission for Environmental Cooperation</publisher>
+    <place>Montreal</place>
+    <dateIssued keyDate="yes">2013-11-02</dateIssued>
+  </originInfo>
+  <typeOfResource>text</typeOfResource>
+  <abstract displayLabel="Description">A short abstract of the publication (~250 words or less). Should describe what it's about and what's in it, to a help a person browsing the site decide whether they want to read this publication.</abstract>
+  <subject displayLabel="Keyword" authority="local">
+    <topic>ecosystems</topic>
+  </subject>
+  <subject displayLabel="Topic">
+    <topic>waste</topic>
+  </subject>
+  <subject displayLabel="Topic">
+    <topic>international trade</topic>
+  </subject>
+  <physicalDescription>
+    <extent>23</extent>
+    <internetMediaType>application/pdf</internetMediaType>
+  </physicalDescription>
+  <identifier type="isbn">23423423</identifier>
+  <identifier type="isbn">2323</identifier>
+  <identifier type="QAPP" displayLabel="QA">23434</identifier>
+  <subject displayLabel="meeting">
+    <name type="conference">
+      <namePart>(indirectly) [Unnamed Sustainable Tourism workshop] (Playa del Carmen, Quintana Roo, México : 27-28 May 1999)</namePart>
+    </name>
+  </subject>
+  <note type="master">no</note>
+</mods>

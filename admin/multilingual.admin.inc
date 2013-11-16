@@ -30,6 +30,22 @@ function multilingual_main() {
     return $output;
 }
 
+function islandora_multilingual_admin_form($form, &$form_state) {
+    $form = array();
+  $form['islandora_multilingual_languages_setup'] = array(
+    '#type' => 'tabfield',
+    '#title' => t('Enabled Languages'),
+  );
+  $form['islandora_multilingual_languages_setup']['islandora_languages'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Languages'),
+    '#description' => t('Select languages in which documents may appear'),
+    '#size' => 40,
+    '#default_value' => variable_get('islandora_languages', 'EN,ES,FR'),
+  );
+  return system_settings_form($form);
+}
+
 
 function multilingual_admin_vocab_table($type) {
     module_load_include('inc', 'islandora_multilingual', 'includes/Multilingual');
@@ -53,6 +69,108 @@ function multilingual_admin_vocab_table($type) {
         return '';
     }
 
+}
+
+function test() {
+
+    $xml_master = new DOMDocument();
+    $file = drupal_get_path('module', 'islandora_multilingual') . '/admin/source.xml';
+    $xml_master->loadXML(file_get_contents($file));
+    $xml_sheep = new DOMDocument();
+    $baa = '<?xml version="1.0" encoding="UTF-8"?><mods xmlns="http://www.loc.gov/mods/v3" xmlns:fn="http://www.w3.org/2005/xpath-functions" xmlns:mods="http://www.loc.gov/mods/v3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xlink="http://www.w3.org/1999/xlink"><name type="personal"><role></role><namePart>PENIS</namePart></name></mods>';
+
+    define('MODS', "http://www.loc.gov/mods/v3");
+    $xml_sheep->loadXML($baa);
+
+    $xml_master->formatOutput = TRUE;
+    $xml_sheep->formatOutput = TRUE;
+
+    $mods_m = $xml_master->documentElement;
+    $mods_s = $xml_sheep->documentElement;
+
+    $xpath_m = new DOMXpath($xml_master);
+    $xpath_m->registerNamespace("mods", "http://www.loc.gov/mods/v3");
+    $xpath_s = new DOMXpath($xml_sheep);
+    $xpath_s->registerNamespace("mods", "http://www.loc.gov/mods/v3");
+
+
+    // Set names stuff
+    $names_list = $xpath_s->query('/mods:mods/mods:name[@type="personal"]');
+    foreach ($names_list as $name) $mods_s->removeChild($name);
+
+    $names_list_m = $xpath_m->query('/mods:mods/mods:name[@type="personal"]');
+    foreach ($names_list_m as $name) {
+        $name_s = $xml_sheep->importNode($name, TRUE); // MUST do a deep-copy.
+        $mods_s->appendChild($name_s);
+    }
+    // Set master stuff
+    $test = $xml_sheep->createElementNS(MODS, 'note');
+    $mods_s->appendChild($test);
+    $test->setAttribute('type', 'master');
+    $test->nodeValue = 'yes';
+
+
+    $synced = $xpath_s->query('/mods:mods/mods:note[@type="master"]', $mods_s);
+    if ($synced->length == 0) {
+        $synced = $xml_sheep->createElementNS(MODS, 'note');
+        $synced->setAttribute('type', 'master');
+        $synced->nodeValue = 'no';
+        $mods_s->appendChild($synced);
+    }
+    else {
+        $synced->item(0)->nodeValue = 'no';
+    }
+
+    // Set label stuff
+    $label_list_m = $xpath_m->query('/mods:mods/mods:note[@type="label"]');
+    if ($label_list_m->length > 0) {
+        $label_list_s = $xpath_s->query('/mods:mods/mods:note[@type="label"]');
+        if ($label_list_s->length == 0) {
+            $label_s = $xml_sheep->createElementNS(MODS, 'note');
+            $label_s->setAttribute('type', 'label');
+            $label_s->nodeValue = $label_list_m->item(0)->nodeValue;
+            $mods_s->appendChild($label_s);
+        }
+        else {
+            $label_list_s->item(0)->nodeValue = $label_list_m->item(0)->nodeValue;
+        }
+    }
+
+    // Sync date field.
+    $date_list_m = $xpath_m->query('/mods:mods/mods:originInfo/mods:dateIssued[@keyDate="yes"]');
+    if ($date_list_m->length > 0) {
+        $date_list_s = $xpath_s->query('/mods:mods/mods:originInfo/mods:dateIssued[@keyDate="yes"]');
+        if ($date_list_s->length == 0) {
+            $originInfo_list_s = $xpath_s->query('/mods:mods/mods:originInfo');
+            if ($originInfo_list_s->length == 0) {
+                $originInfo_s = $xml_sheep->createElementNS(MODS, 'originInfo');
+                $mods_s->appendChild($originInfo_s);
+            }
+            else {
+                $originInfo_s = $originInfo_list_s->item(0);
+            }
+            $date_s = $xml_sheep->createElementNS(MODS, 'dateIssued');
+            $date_s->setAttribute('keyDate', 'yes');
+            $originInfo_s->appendChild($date_s);
+        }
+        else {
+            $date_s = $date_list_s->item(0);
+        }
+        $date_s->nodeValue = $date_list_m->item(0)->nodeValue;
+    }
+
+
+    $output = '';
+    $output .= '<h2>Sheep XML</h2>';
+    $output .= '<pre>';
+    $output .= htmlentities($xml_sheep->saveXML());
+    $output .= '</pre>';
+    $output .= '<h2>Master XML</h2>';
+    $output .= '<pre>';
+    $output .= htmlentities($xml_master->saveXML());
+    $output .= '</pre>';
+
+    return $output;
 }
 
 function multilingual_reset() {

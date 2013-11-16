@@ -195,6 +195,18 @@ function multilingual_sync_xml($ds_master, $ds_sheep) {
         }
     }
 
+    # Remove old personal names and add new personal names.
+    $names_list = $xpath_s->query('/mods:mods/mods:name[@type="personal"]');
+    foreach ($names_list as $name) $mods_s->removeChild($name);
+
+    $names_list_m = $xpath_m->query('/mods:mods/mods:name[@type="personal"]');
+    foreach ($names_list_m as $name) {
+        $name_s = $xml_sheep->importNode($name, TRUE); // MUST do a deep-copy.
+        $mods_s->appendChild($name_s);
+    }
+
+
+
 
 
     //==============================================
@@ -546,13 +558,14 @@ function multilingual_get_vocabulary_values($type = '', $reset = FALSE) {
         }
         else {
             if (function_exists('i18n_string')) {
-                $tg_object = new i18n_string_textgroup_default('islandora_multilingual');
+                $tg_object = i18n_string_textgroup('islandora_multilingual');
                 $results = $tg_object->load_strings();
                 foreach ($results as $result) {
                     $result->get_translation('es');
                     $result->get_translation('fr');
                 }
             }
+            
             $data = array();
             foreach($results as $result) {
                 if ($result->type == $type) { 
