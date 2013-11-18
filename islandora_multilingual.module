@@ -68,6 +68,16 @@ function islandora_multilingual_menu() {
     'access callback' => 'modified_collection_add_access',
     'access arguments' => array(2),
   );
+  
+  // non-multilingual configuration: the "manage collections" tab
+  $items['islandora/object/%islandora_object/manage/collections'] = array(
+    'title' => 'Collections',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('islandora_multilingual_collection_editor', 2),
+    'file' => 'includes/collections.inc',
+    'type' => MENU_LOCAL_TASK,
+    'access callback' => TRUE,
+  );
 
   // non-multilingual configuration: autocomplete paths
   $items['admin/islandora_multilingual/solr_autocomplete'] = array(
@@ -170,6 +180,8 @@ function islandora_multilingual_islandora_overview_object(AbstractObject $object
         'header' => array('Thumbnail Language', 'Image', 'Actions'),
         'rows' => $tn_rows,
     )   );
+
+    $output['a-add-collections'] = l('Add/Remove keyword collections', "islandora/object/{$object->id}/manage/collections", array() );
 
     return $output;
 }
