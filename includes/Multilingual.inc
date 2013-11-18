@@ -149,8 +149,13 @@ function multilingual_synchronize_mods_datastreams(FedoraObject $object, $master
     }
 }
 
+/* 
+ * Synchronize two MODS streams 
+ *
+ * FIXME: replace this with an XSLT that merges the two documents. 
+ */
 function multilingual_sync_xml($ds_master, $ds_sheep) {
-    define(MODS, "http://www.loc.gov/mods/v3");
+    if (!defined('MODS')) define('MODS', "http://www.loc.gov/mods/v3");
 
     $xml_master = new DOMDocument();
     $xml_master->loadXML($ds_master->content);
@@ -207,6 +212,9 @@ function multilingual_sync_xml($ds_master, $ds_sheep) {
 
 
 
+    $ds_sheep->setContentFromString($xml_sheep->saveXML());
+
+
 
 
     //==============================================
@@ -261,7 +269,7 @@ function multilingual_sync_xml($ds_master, $ds_sheep) {
     # Sync document type
     #
     # Save sheep xml as datastream.
-    $ds_sheep->setContentFromString($xml_sheep->asXML());
+    # $ds_sheep->setContentFromString($xml_sheep->asXML());
 }
     
 /**

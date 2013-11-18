@@ -352,7 +352,7 @@ function islandora_multilingual_process_islandora_default_edit(&$variables) {
  * Also load the Fedora label into the MODS data, if not already present (edit form only)
  */
 function islandora_multilingual_form_alter(&$form, $form_state, $form_id) {
- if ($form_id == 'xml_form_builder_edit_datastream_form' and in_array(ISLANDORA_MULTILINGUAL_CMODEL, $form_state['datastream']->parent->models)) {
+ if ($form_id == 'xml_form_builder_edit_datastream_form' and in_array(ISLANDORA_MULTILINGUAL_CMODEL, $form_state['datastream']->parent->models) and !isset($form['available_forms'])) {
    array_unshift($form['#validate'], 'islandora_multilingual_datastream_form_validate');
    multilingual_fill_mods_label_field($form, $form_state);
  }
