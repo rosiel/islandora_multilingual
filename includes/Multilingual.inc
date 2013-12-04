@@ -138,7 +138,7 @@ function multilingual_synchronize_mods_datastreams(FedoraObject $object, $master
     foreach ($languages_to_set as $language) {
         $sheep = $object['MODS-' . $language];
         if (abs(strtotime($master->createdDate) - strtotime($sheep->createdDate)) > 1) {
-            multilingual_sync_xml($master, $sheep);
+            multilingual_sync_xml($master, $sheep); # eventually make this a hook? Or break it passing the xml?
             watchdog('multilingual', "synchronized $language from " . $master->id);
         }
         else {
@@ -169,9 +169,6 @@ function multilingual_sync_xml($ds_master, $ds_sheep) {
     $xpath_m->registerNamespace("mods", "http://www.loc.gov/mods/v3");
     $xpath_s = new DOMXpath($xml_sheep);
     $xpath_s->registerNamespace("mods", "http://www.loc.gov/mods/v3");
-    // Note: All documentation suggests that using namespaces in DOMXpath is necessary,
-    // but in this case it only works without it. 
-
 
     # Mark the synchronized (sheep) datastreams as "not master".
     $synced = $xpath_s->query('/mods:mods/mods:note[@type="master"]');
@@ -208,6 +205,33 @@ function multilingual_sync_xml($ds_master, $ds_sheep) {
     foreach ($names_list_m as $name) {
         $name_s = $xml_sheep->importNode($name, TRUE); // MUST do a deep-copy.
         $mods_s->appendChild($name_s);
+    }
+
+    // Sync date field.
+    $date_list_m = $xpath_m->query('/mods:mods/mods:originInfo/mods:dateIssued[@keyDate="yes"]');
+    if ($date_list_m->length > 0) {
+        $date_list_s = $xpath_s->query('/mods:mods/mods:originInfo/mods:dateIssued[@keyDate="yes"]');
+        if ($date_list_s->length == 0) {
+            $originInfo_list_s = $xpath_s->query('/mods:mods/mods:originInfo');
+            if ($originInfo_list_s->length == 0) {
+                $originInfo_s = $xml_sheep->createElementNS(MODS, 'originInfo');
+                $mods_s->appendChild($originInfo_s);
+            }
+            else {
+                $originInfo_s = $originInfo_list_s->item(0);
+            }
+            $date_s = $xml_sheep->createElementNS(MODS, 'dateIssued');
+            $date_s->setAttribute('keyDate', 'yes');
+            $originInfo_s->appendChild($date_s);
+        }
+        elseif ($date_list_s->length > 1) {
+            $date_s = $date_list_s->item(0);
+            # Add some interesting code to remove excess dates here fixme
+        }
+        else {
+            $date_s = $date_list_s->item(0);
+        }
+        $date_s->nodeValue = $date_list_m->item(0)->nodeValue;
     }
 
 

@@ -86,3 +86,18 @@ function islandora_multilingual_file_autocomplete($token, $string) {
     }
     return "{'value 1' : 'value 1', 'second value' : 'value 2' , 'Third value' : 'value 3'}";
 }
+
+function islandora_multilingual_moose_autocomplete($moose_field, $lang, $string) {
+    $values = islandora_multilingual_get_moose_values($moose_field, $lang);
+    $autocomplete_values = array();
+    foreach ($values as $value) {
+        if (preg_match("/{$string}/i", $value) !== 0) {
+          $autocomplete_values[$value] = $value;
+        }
+    }
+    return drupal_json_output($autocomplete_values);
+}
+
+function islandora_multilingual_get_moose_values($moose_field, $lang) {
+
+}

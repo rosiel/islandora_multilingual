@@ -117,7 +117,8 @@ function islandora_multilingual_islandora_overview_object(AbstractObject $object
     $output = array();
     include_once DRUPAL_ROOT . '/includes/iso.inc';
     $language_list = _locale_get_predefined_list();
-    
+
+    # MODS section
     $mods_rows = array();
     foreach ($object as $datastream) {
         if (preg_match('/MODS/', $datastream->id) === 1) {
@@ -131,12 +132,21 @@ function islandora_multilingual_islandora_overview_object(AbstractObject $object
             $mods_rows[] = array(l("Edit details in $lang_string", "islandora/object/{$object->id}/datastream/{$datastream->id}/edit"));
         }
     }
-    $output['z-metadata'] =  theme('table', array(
-        'header' => array(t('MODS datastreams')),
-        'rows' => $mods_rows,
-        'empty' => 'No MODS datastreams found.',
-    ));
 
+    $mods = array(
+        '#type' => 'fieldset',
+        '#title' => t('Metadata'),
+        'mods' => array(
+            '#theme' => 'table',
+            '#header' => array(t('MODS datastreams')),
+            '#rows' => $mods_rows,
+            '#empty' => 'No MODS datastreams found.',
+        ),
+    );
+
+    $output['z-metadata'] = drupal_render($mods);
+
+    # PDF section
     $obj_rows = array();
     $languages = explode(',', variable_get('islandora_languages', 'EN,ES,FR'));
     foreach ($languages as $lang) {
@@ -148,17 +158,25 @@ function islandora_multilingual_islandora_overview_object(AbstractObject $object
         }
         if (isset($object['OBJ-' . $lang])) {
             $ds = $object['OBJ-' . $lang];
-            $obj_rows[] = array($lang_string, $ds->label, format_date(strtotime($ds->createdDate), 'long'), format_size($ds->size), l('Delete', "islandora/object/{$object->id}/datastream/{$ds->id}/delete"));
+            $obj_rows[] = array($lang_string, $ds->label, format_date(strtotime($ds->createdDate), 'long'), format_size($ds->size), l('Delete PDF', "islandora/object/{$object->id}/datastream/{$ds->id}/delete"));
         }
         else {
             $obj_rows[] = array(l("Add a PDF in $lang_string", "islandora/object/{$object->id}/manage/datastreams/add", array('query' => array('edit[dsid]' => 'OBJ-' . $lang))), '', '', '', '');
         }   
     }
-    $output['y-objects'] = theme('table', array(
-        'header' => array(t('PDF Language'), t('Filename'), t('Uploaded'), t('Size'), ''),
-        'rows' => $obj_rows,
-    ));
 
+    $pdfs = array(
+        '#type' => 'fieldset',
+        '#title' => t('Uploaded PDF files'),
+        'pdfs' => array(
+            '#theme' => 'table',
+            '#header' => array(t('PDF Language'), t('Filename'), t('Uploaded'), t('Size'), ''),
+            '#rows' => $obj_rows,
+        ),
+    );
+    $output['y-objects'] = drupal_render($pdfs);
+
+    # Thumbnail section
     $tn_rows = array();
     foreach ($languages as $lang) {
         if (isset($language_list[strtolower($lang)])) {
@@ -169,19 +187,40 @@ function islandora_multilingual_islandora_overview_object(AbstractObject $object
         }
         if (isset($object['TN-' . $lang])) {
             $ds = $object['TN-' . $lang];
-            $tn_rows[] = array($lang_string, theme('image', array('path' => "islandora/object/{$object->id}/datastream/{$ds->id}/view", 'height' => 100)), l("Delete", "islandora/object/{$object->id}/datastream/{$ds->id}/delete"));
+            $tn_rows[] = array($lang_string, theme('image', array('path' => "islandora/object/{$object->id}/datastream/{$ds->id}/view", 'height' => 100)), l("Delete thumbnail image", "islandora/object/{$object->id}/datastream/{$ds->id}/delete"));
         } 
         else {
             $tn_rows[] = array(l("Add a thumbnail in $lang_string", "islandora/object/{$object->id}/manage/datastreams/add", array('query' => array('edit[dsid]' => 'TN-' . $lang))), '', '');
         }
     }
 
-    $output['x-thumbnail'] = theme('table', array(
-        'header' => array('Thumbnail Language', 'Image', 'Actions'),
-        'rows' => $tn_rows,
-    )   );
+    $wrap = array(
+        '#type' => 'fieldset',
+        '#title' => t('Thumbnail Images'),
+        'thumbs' => array(
+            '#theme' => 'table',  
+            '#header' => array('Language', 'Image', 'Actions'),
+            '#rows' => $tn_rows,
+        ),
+    );
 
-    $output['a-add-collections'] = l('Add/Remove keyword collections', "islandora/object/{$object->id}/manage/collections", array() );
+    $output['x-thumbnail'] = drupal_render($wrap);
+
+    $colls = array(
+        '#type' => 'fieldset',
+        '#title' => 'Keywords and Series',
+        'child' => array(
+            '#theme' => 'link',
+            '#text' => t('Associate this document with keywords and/or series.'),
+            '#path' => "islandora/object/{$object->id}/manage/collections",
+            '#options' => array(
+                'attributes' => array(),
+                'html' => FALSE,
+            ),
+        ),
+    );
+
+    $output['a-add-collections'] = drupal_render($colls);
 
     return $output;
 }
@@ -265,7 +304,7 @@ function islandora_custom_workflow($object) {
         } else {
             $delete_link = t('You do not have sufficient permissions to publish this document.');
         }
-        return '<div class="notice">' . t('This document is not visible to the public. ' . $delete_link . '</div>');
+        return '<div class="messages warning">' . t('This document is not visible to the public. ' . $delete_link . '</div>');
     }
 }
 /**

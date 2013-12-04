@@ -153,6 +153,10 @@ function test() {
             $date_s->setAttribute('keyDate', 'yes');
             $originInfo_s->appendChild($date_s);
         }
+        elseif ($date_list_s->length > 1) {
+            $date_s = $date_list_s->item(0);
+            # Add some interesting code to remove excess dates here fixme
+        }
         else {
             $date_s = $date_list_s->item(0);
         }
