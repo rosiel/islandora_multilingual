@@ -299,7 +299,7 @@ function islandora_multilingual_islandora_CEC_multilingual_islandora_view_object
 
 function islandora_custom_workflow($object) {
     if (isset($object['POLICY']) and !islandora_object_access(FEDORA_VIEW_OBJECTS, $object, user_load(0))) {
-        if (islandora_object_manage_access_callback(FEDORA_PURGE, $object)) {
+        if (islandora_object_access_callback(FEDORA_PURGE, $object)) {
             $delete_link = l(t('Click here to publish this document to the public.'), "islandora/object/{$object->id}/datastream/POLICY/delete");
         } else {
             $delete_link = t('You do not have sufficient permissions to publish this document.');
