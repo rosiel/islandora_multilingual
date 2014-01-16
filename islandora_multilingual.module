@@ -1,18 +1,11 @@
 <?php
 
-# vim: set expandtab:
-# vim: tabstop=2:
-# vim: ai:
-# vim: shiftwidth=2:
-
 /**
  * @file
  * Module relating to the CEC_multilingual object model
  */
 
-define('ISLANDORA_MULTILINGUAL_TEXTGROUP', 'islandora_multilingual');
 define('ISLANDORA_MULTILINGUAL_CMODEL', 'islandora:CEC_multilingual');
-define('DEBUG', FALSE);
 
 /** 
  * Implements hook_menu()
@@ -23,212 +16,17 @@ function islandora_multilingual_menu() {
 
   $items['admin/islandora/multilingual'] = array(
     'title' => 'Multilingual',
-    'description' => t('Administer the multilingual module'),
+    'description' => 'Choose languages for Multilingual Islandora to enable',
     'file' => 'admin/multilingual.admin.inc',
-    'page callback' => 'multilingual_main',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('islandora_multilingual_admin_form'),
     'access arguments' => array('administer site configuration'),
     'type' => MENU_NORMAL_ITEM,
-);
-
-  $items['admin/islandora/multilingual/refresh'] = array(
-      'title' => 'Reset vocabulary strings',
-      'description' => 'Reset to default translations strings',
-      'file' => 'admin/multilingual.admin.inc',
-      'page callback' => 'multilingual_reset',
-      'access arguments' => array('administer site configuration'),
-      'type' => MENU_LOCAL_ACTION,
-  );
-    $items['admin/islandora/multilingual/languages'] = array(
-      'title' => 'Set languages',
-      'description' => 'Choose languages for Multilingual Islandora to enable',
-      'file' => 'admin/multilingual.admin.inc',
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('islandora_multilingual_admin_form'),
-      'access arguments' => array('administer site configuration'),
-      'type' => MENU_NORMAL_ITEM,
-  );
-
-    $items['admin/islandora/multilingual/test'] = array(
-      'title' => 'Test page',
-      'description' => 'Please ignore.',
-      'file' => 'admin/multilingual.admin.inc',
-      'page callback' => 'test',
-      'access arguments' => array('administer site configuration'),
-      'type' => MENU_NORMAL_ITEM,
-  );
-
-  // non-multilingual configuration: the "add" tab
-  $items['islandora/object/%islandora_object/add'] = array(
-    'title' => 'Add',
-    'page callback' => 'islandora_basic_collection_ingest_action',
-    'page arguments' => array(2),
-    'file' => 'islandora_basic_collection.module',
-    'file path' => drupal_get_path('module', 'islandora_basic_collection'),
-    'type' => MENU_LOCAL_TASK,
-    'access callback' => 'modified_collection_add_access',
-    'access arguments' => array(2),
-  );
-  
-  // non-multilingual configuration: the "manage collections" tab
-  $items['islandora/object/%islandora_object/manage/collections'] = array(
-    'title' => 'Collections',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('islandora_multilingual_collection_editor', 2),
-    'file' => 'includes/collections.inc',
-    'type' => MENU_LOCAL_TASK,
-    'access callback' => TRUE,
-  );
-
-  // non-multilingual configuration: autocomplete paths
-  $items['admin/islandora_multilingual/solr_autocomplete'] = array(
-      'title' => 'autocomplete callback',
-      'description' => 'Autocomplete from values in a solr field',
-      'file' => 'includes/autocomplete.inc',
-      'page callback' => 'islandora_multilingual_solr_autocomplete',
-      'page arguments' => array(3,4),
-      'access callback' => 'user_is_logged_in', 
-      'type' => MENU_CALLBACK,
-  );
-  // non-multilingual configuration: autocomplete from hackily hard-coded files because I'm too lazy to port Islandora Autocomplete from 6
-  $items['admin/islandora_multilingual/file_autocomplete'] = array(
-      'title' => 'autocomplete callback',
-      'description' => 'Autocomplete from JSON in a file.',
-      'file' => 'includes/autocomplete.inc',
-      'page callback' => 'islandora_multilingual_file_autocomplete',
-      'page arguments' => array(3,4),
-      'access callback' => 'user_is_logged_in',
-      'type' => MENU_CALLBACK,
-  );
-  // non-multilingual configuration: autocomplete path for translated vocab
-  $items['admin/islandora_multilingual/vocab_autocomplete'] = array(
-      'title' => 'autocomplete callback for vocab',
-      'description' => 'Autocomplete from translation strings in a text group in a given language',
-      'file' => 'includes/autocomplete.inc',
-      'page callback' => 'islandora_multilingual_vocabulary_autocomplete',
-      'page arguments' => array(3,4,5),
-      'access callback' => 'user_is_logged_in', 
-      'type' => MENU_CALLBACK,
   );
 
   return $items;
 }
 
-function islandora_multilingual_islandora_overview_object(AbstractObject $object) {
-    $output = array();
-    include_once DRUPAL_ROOT . '/includes/iso.inc';
-    $language_list = _locale_get_predefined_list();
-
-    # MODS section
-    $mods_rows = array();
-    foreach ($object as $datastream) {
-        if (preg_match('/MODS/', $datastream->id) === 1) {
-            $langcode = strtolower(substr($datastream->id, -2));
-            if (isset($language_list[$langcode])) {
-                $lang_string = $language_list[$langcode][0];
-            }
-            else {
-                $lang_string = $datastream->id;
-            }
-            $mods_rows[] = array(l("Edit details in $lang_string", "islandora/object/{$object->id}/datastream/{$datastream->id}/edit"));
-        }
-    }
-
-    $mods = array(
-        '#type' => 'fieldset',
-        '#title' => t('Metadata'),
-        'mods' => array(
-            '#theme' => 'table',
-            '#header' => array(t('MODS datastreams')),
-            '#rows' => $mods_rows,
-            '#empty' => 'No MODS datastreams found.',
-        ),
-    );
-
-    $output['z-metadata'] = drupal_render($mods);
-
-    # PDF section
-    $obj_rows = array();
-    $languages = explode(',', variable_get('islandora_languages', 'EN,ES,FR'));
-    foreach ($languages as $lang) {
-        if (isset($language_list[strtolower($lang)])) {
-            $lang_string = $language_list[strtolower($lang)][0];
-        }
-        else {
-            $lang_string = $lang;
-        }
-        if (isset($object['OBJ-' . $lang])) {
-            $ds = $object['OBJ-' . $lang];
-            $obj_rows[] = array($lang_string, $ds->label, format_date(strtotime($ds->createdDate), 'long'), format_size($ds->size), l('Delete PDF', "islandora/object/{$object->id}/datastream/{$ds->id}/delete"));
-        }
-        else {
-            $obj_rows[] = array(l("Add a PDF in $lang_string", "islandora/object/{$object->id}/manage/datastreams/add", array('query' => array('edit[dsid]' => 'OBJ-' . $lang))), '', '', '', '');
-        }   
-    }
-
-    $pdfs = array(
-        '#type' => 'fieldset',
-        '#title' => t('Uploaded PDF files'),
-        'pdfs' => array(
-            '#theme' => 'table',
-            '#header' => array(t('PDF Language'), t('Filename'), t('Uploaded'), t('Size'), ''),
-            '#rows' => $obj_rows,
-        ),
-    );
-    $output['y-objects'] = drupal_render($pdfs);
-
-    # Thumbnail section
-    $tn_rows = array();
-    foreach ($languages as $lang) {
-        if (isset($language_list[strtolower($lang)])) {
-            $lang_string = $language_list[strtolower($lang)][0];
-        }
-        else {
-            $lang_string = $lang;
-        }
-        if (isset($object['TN-' . $lang])) {
-            $ds = $object['TN-' . $lang];
-            $tn_rows[] = array($lang_string, theme('image', array('path' => "islandora/object/{$object->id}/datastream/{$ds->id}/view", 'height' => 100)), l("Delete thumbnail image", "islandora/object/{$object->id}/datastream/{$ds->id}/delete"));
-        } 
-        else {
-            $tn_rows[] = array(l("Add a thumbnail in $lang_string", "islandora/object/{$object->id}/manage/datastreams/add", array('query' => array('edit[dsid]' => 'TN-' . $lang))), '', '');
-        }
-    }
-
-    $wrap = array(
-        '#type' => 'fieldset',
-        '#title' => t('Thumbnail Images'),
-        'thumbs' => array(
-            '#theme' => 'table',  
-            '#header' => array('Language', 'Image', 'Actions'),
-            '#rows' => $tn_rows,
-        ),
-    );
-
-    $output['x-thumbnail'] = drupal_render($wrap);
-
-    $colls = array(
-        '#type' => 'fieldset',
-        '#title' => 'Keywords and Series',
-        'child' => array(
-            '#theme' => 'link',
-            '#text' => t('Associate this document with keywords and/or series.'),
-            '#path' => "islandora/object/{$object->id}/manage/collections",
-            '#options' => array(
-                'attributes' => array(),
-                'html' => FALSE,
-            ),
-        ),
-    );
-
-    $output['a-add-collections'] = drupal_render($colls);
-
-    return $output;
-}
-
-function islandora_multilingual_islandora_overview_object_alter($object, &$output) {
-    krsort($output);
-    return $output;
-}
 /** 
  * Implements hook_variable_info()
  */
@@ -236,23 +34,9 @@ function islandora_multilingual_variable_info() {
   $variable = array();
   $variable['islandora_languages'] = array(
     'title' => t('Islandora languages'),
-    'description' => t('Languages in which Islandora objects should be sought. This is the upper-case version of the language code in Drupal.'),
+    'description' => t('Languages in which multilingual metadata will be available. Enter a comma-separated list of upper-case language abbreviations. E.g. for English and French, enter "EN,FR" -- note, no space after the comma.'),
     'type' => 'string',
   );
-}
-
-/**
- * Implements hook_i18n_string_info().
- */
-function islandora_multilingual_i18n_string_info() {
-    return array(
-        'islandora_multilingual' => array(
-            'title' => t('Islandora Multilingual'),
-            'description' => t('Translatable controlled vocabulary'),
-            'format' => FALSE,
-            'list' => TRUE,
-        ),
-    );
 }
 
 /**
@@ -283,45 +67,33 @@ function islandora_multilingual_theme($existing, $type, $theme, $path) {
 
 /**
  * Implements hook_CMODEL_PID_islandora_view_object().
+ *
  */
-function islandora_multilingual_islandora_CEC_multilingual_islandora_view_object($object, $page_number, $page_size) {
+function islandora_multilingual_islandora_view_object($object, $page_number, $page_size) {
+  if (in_array(ISLANDORA_MULTILINGUAL_CMODEL, $object->models)) {
     $result = array();
-    $workflow = islandora_custom_workflow($object);
-    if ($workflow) {
-        $result['publish'] = $workflow;
-    }
     $result['Multilingual View'] = theme('islandora_multilingual', array('islandora_object' => $object));
-    
     return $result;
+  }
 }
 
-
-
-function islandora_custom_workflow($object) {
-    if (isset($object['POLICY']) and !islandora_object_access(FEDORA_VIEW_OBJECTS, $object, user_load(0))) {
-        if (islandora_object_access_callback(FEDORA_PURGE, $object)) {
-            $delete_link = l(t('Click here to publish this document to the public.'), "islandora/object/{$object->id}/datastream/POLICY/delete");
-        } else {
-            $delete_link = t('You do not have sufficient permissions to publish this document.');
-        }
-        return '<div class="messages warning">' . t('This document is not visible to the public. ' . $delete_link . '</div>');
-    }
-}
 /**
  * Implements hook_islandora_ingest_steps().
- * though actually hook_islandora_CMODEL_PID_islandora_ingest_steps().
- * ORLY?
+ *
+ * Our custom ingest form lets you select the language of the uploaded file.
  */
 function islandora_multilingual_islandora_CEC_multilingual_islandora_ingest_steps(array $configuration) {
-  return array(
-    'islandora_multlingual_pdf_file_upload' => array(
-      'weight' => 10,
-      'type' => 'form',
-      'form_id' => 'islandora_multilingual_pdf_upload_form',
-      'module' => 'islandora_multilingual',
-      'file' => 'includes/multilingual_upload.form.inc',
-    )
-  );
+  if (in_array(ISLANDORA_MULTILINGUAL_CMODEL, $configuration['islandora']['shared_storage']['models'])) { 
+      return array(
+        'islandora_multlingual_pdf_file_upload' => array(
+        'weight' => 10,
+        'type' => 'form',
+        'form_id' => 'islandora_multilingual_pdf_upload_form',
+        'module' => 'islandora_multilingual',
+        'file' => 'includes/multilingual_upload.form.inc',
+      )
+    );
+  }
 }
 
 /** 
@@ -331,122 +103,68 @@ function islandora_multilingual_islandora_CEC_multilingual_islandora_ingest_step
  * If an OBJ ds was ingested, create the thumbnails.
  */
 function islandora_multilingual_islandora_datastream_ingested($object, $datastream) {
-    if (DEBUG) {
-        $dss = array();
-        foreach ($object as $ds) {
-            $dss[] = $ds->id;
-        }
-        watchdog('multilingual', 'start hook ingested for:' . $datastream->id . ' with datastreams '. implode($dss, ' '));
-    }
-  module_load_include('inc', 'islandora_multilingual', 'includes/Multilingual');
-  if (preg_match('/MODS-/', $datastream->id) === 1) {
-    $missing_ds = !(isset($object['MODS-EN']) and isset($object['MODS-ES']) and isset($object['MODS-FR']));
+  if (preg_match('/MODS/', $datastream->id) === 1) {
+      $enabled_languages = explode(',', variable_get('islandora_languages', 'EN,'));
+      $missing_ds = FALSE;
+      foreach ($enabled_languages as $lang) {
+          if (!isset($object['MODS-' . $lang])) {
+              $missing_ds = TRUE;
+          }
+      }
     if ($missing_ds) {
+      module_load_include('inc', 'islandora_multilingual', 'includes/Multilingual');
       sleep(2);
-      multilingual_create_multiple_metadatastreams($object, $datastream);
-      multilingual_synchronize_mods_datastreams($object, $datastream);
+      multilingual_create_multiple_mods_datastreams($object, $datastream);
+      module_invoke_all('islandora_multilingual_mods_sync', $object, $datastream);
     } 
   }
-  if (preg_match('/OBJ-.*/', $datastream->id) === 1) {
+  if (preg_match('/OBJ.*/', $datastream->id) === 1) {
     islandora_multilingual_create_all_derivatives($object, $datastream->id);
   }
 }
 
-function islandora_multilingual_islandora_datastream_modified($object, $datastream) {
-  module_load_include('inc', 'islandora_multilingual', 'includes/Multilingual');
-  if (preg_match('/MODS-/', $datastream->id) === 1) {
-      if(DEBUG) {
-          watchdog('multilingual', 'hook modified ran for ds: '.$datastream->id);
-      }
-    multilingual_synchronize_mods_datastreams($object, $datastream);
-  }
-}
-
-/* 
- *  Find a better place for this - it's the permissions function for the Add tab to display.
- * Creates a shortcut "Add object" tab to the item menu for any object with CM islandora:collection
- * 
- */
-
-function modified_collection_add_access($object = NULL) { 
-    if (!is_object($object)) {
-        return FALSE;
-    }
-    if (! islandora_object_access_callback(FEDORA_VIEW_OBJECTS, $object)) {
-        return FALSE;
-    }
-    
-    module_load_include('module', 'islandora_basic_collection', '');
-    return islandora_basic_collection_ingest_access($object);
-}
-
 /** 
- * Fixme should go elsewhere
- * Alters the display of datastreams to include the last edited date.
+ * Implements hook_form_FORM_ID_alter()
+ *
+ * In the Islandora edit datastream form, 
+ *  - add our custom validation function
+ *  - fill the 'label' field
  */
-function islandora_multilingual_process_islandora_default_edit(&$variables) {
-    $variables['datastream_table']['header'][] = array('data' => t('Last modified'));
-    $i = 0;
-    foreach ($variables['islandora_object'] as $ds) {
-        $variables['datastream_table']['rows'][$i][] = array(
-            'class' => 'datastream_modified', 
-            'data' => $ds->createdDate,
-        );
-        $i = $i + 1;
-    }
+function islandora_multilingual_form_xml_form_builder_edit_datastream_form_alter(&$form, $form_state) {
+  if (in_array(ISLANDORA_MULTILINGUAL_CMODEL, $form_state['datastream']->parent->models) and !isset($form['available_forms'])) {
+    array_unshift($form['#validate'], 'islandora_multilingual_datastream_form_validate');
+    multilingual_fill_mods_label_field($form, $form_state);
+  }
 }
 
 /**
- * Implements hook_form_alter()
+ * Implements hook_form_FORM_ID_alter()
  *
- * Adds our custom validate function to the metadata forms (ingest and edit), when the content model is our content model.
- * Also load the Fedora label into the MODS data, if not already present (edit form only)
+ * In the Islandora ingest form, 
+ *  - add our custom validate function
  */
-function islandora_multilingual_form_alter(&$form, $form_state, $form_id) { 
-  if ($form_id == 'xml_form_builder_select_association_form') {
-      $form['available_forms']['#title'] .= ' to reflect the language of the original document.';
+function islandora_multilingual_form_islandora_ingest_form_alter(&$form, $form_state) {
+  if (isset($form_state['islandora']['objects'])) {
+      if (isset($form_state['islandora']['objects'][0]) and in_array(ISLANDORA_MULTILINGUAL_CMODEL, $form_state['islandora']['objects'][0]->models)) {
+          array_unshift($form['#validate'], 'islandora_multilingual_datastream_form_validate');
+      }
   }
- if ($form_id == 'xml_form_builder_edit_datastream_form' and in_array(ISLANDORA_MULTILINGUAL_CMODEL, $form_state['datastream']->parent->models) and !isset($form['available_forms'])) {
-   array_unshift($form['#validate'], 'islandora_multilingual_datastream_form_validate');
-   multilingual_fill_mods_label_field($form, $form_state);
- }
- if ($form_id == 'islandora_ingest_form' and isset($form_state['islandora']['objects'])) {
-     if (isset($form_state['islandora']['objects'][0]) and in_array(ISLANDORA_MULTILINGUAL_CMODEL, $form_state['islandora']['objects'][0]->models)) {
-         array_unshift($form['#validate'], 'islandora_multilingual_datastream_form_validate');
-     }
-     $form['originInfo']['dateIssued']['#required'] = TRUE;
-     $form['#attached']['js'] = array(drupal_get_path('module', 'islandora_multilingual') . '/js/updatelabel.js' => array( 'type' => 'file'));
-     $form['titleInfo']['title']['#attributes']['onblur'] = "updatelabel();";
-     $form['titleInfo']['subTitle']['#attributes']['onblur'] = "updatelabel();";
- }
- if ($form_id == 'islandora_xacml_editor_form') {
-     $form['access']['#description'] = t('WARNING: do NOT enable view restrictions, then give permission to "anonymous" or "anonymous user". If you want logged-out users to see this object, disable view restrictions.');
- }  
 }
 
 function multilingual_fill_mods_label_field(&$form, $form_state) {
     $form['label']['#default_value'] = $form_state['datastream']->parent->label;
     $form['label']['#access'] = FALSE;
-        
-    //dpm($form_state['datastream']->
 }
 /*
  * This custom validation function runs after you edit metadata using a mods form
  * either when ingesting or when editing an existing datastream.
  *
- * It clears the unselected checkbox elements (so as to not write their nodes)
- *
  * It marks this datastream as "master".
  * 
  */
 function islandora_multilingual_datastream_form_validate(array &$form, array &$form_state) {
-    if ((($form['#form_id'] == 'islandora_ingest_form') and ($form_state['islandora']['step_id'] == 'xml_form_builder_metadata_step')) or (($form['#form_id'] == 'xml_form_builder_edit_datastream_form') )) {
-
-        //form_set_error('error');
-    }
-
-    // Determine whether the form has been submitted (since validate also runs 
-    // when the user creates/deletes tab form elements) .
+    // Determine whether the form has been submitted (since the form validation function
+    // also runs when the user creates/deletes tab form elements).
     $form_was_submitted = FALSE;
     if (($form['#form_id'] == 'islandora_ingest_form') and ($form_state['islandora']['step_id'] == 'xml_form_builder_metadata_step') and $form_state['submitted']) {
         $form_was_submitted = TRUE;
@@ -455,56 +173,16 @@ function islandora_multilingual_datastream_form_validate(array &$form, array &$f
     } 
 
     if ($form_was_submitted) {
-        // Clear out the unselected keyword and language checkboxes from $form_state['storage'].
-        $root = $form_state['storage']['objective_form_storage']['root'];
-        foreach ($form_state['values']['Keywords'] as $keyword => $value) {
-          if ($value == '0') {
-            // Note: test against the string '0' to avoid string-to-int conversion weirdness. 
-            unset($root->children['Keywords']->children[$keyword]);
-          }
-        }
-        if (isset($form_state['values']['Language']) and $form_state['values']['Language'] == '0') {
-            unset($root->children['Language']);
-        }
-
         // Mark this datastream as "master"
         $form_state['values']['master'] = 'yes';
     }
-	//dpm($form_state);
-  //form_set_error('error');
 }
-
-
-/**
- * Implements hook_form_FORM_ID_alter()
- *
- * Alters the add datastream form to not let the user access the 'Label' field.
- * Prepends our validation function which copies the filename to the label field.
- */
-function islandora_multilingual_form_islandora_add_datastream_form_alter(&$form, $form_state) {
-    $form['label']['#type'] = 'hidden';
-    $form['label']['#value'] = 'Datastream label';
-    array_unshift($form['#validate'], 'islandora_multilingual_add_datastream_form_validate');
-}
-
-/**
- * Copies the name of the uploaded file to the label field in add_datastream_form.
- */
-function islandora_multilingual_add_datastream_form_validate(array &$form, array &$form_state) {
-    $file = file_load($form_state['values']['file']);
-    $form_state['values']['label'] = $file->filename;
-    $form_state['input']['label'] = $file->filename;
-}
-
-
-
 
 /**
  * Implements hook_xml_form_builder_get_transforms().
  *
- * Grabs any XSLTs from the "transforms" directory inside of this module.
+ * Grabs any XSLTs from the "transforms" subdirectory.
  */
-
 function islandora_multilingual_xml_form_builder_get_transforms() {
   $p = drupal_get_path('module', 'islandora_multilingual');
   $transforms = array();
@@ -521,6 +199,10 @@ function islandora_multilingual_xml_form_builder_get_transforms() {
   return $transforms;
 }
 
+/* Implements hook_xml_form_builder_get_self_transforms
+ *
+ * Grabs any XSLTs from the "self_transforms" subdirectory.
+ */
 function islandora_multilingual_xml_form_builder_get_self_transforms() {
   $p = drupal_get_path('module', 'islandora_multilingual');
   $transforms = array();

@@ -77,14 +77,19 @@ function islandora_multilingual_preprocess_islandora_multilingual(&$variables) {
 	// end link url's section
 	//
 	//
-    $variables['islandora_content'] = l($variables['islandora_thumbnail_img'], $variables['islandora_full_url'], array('html' => TRUE)); // FIXME note: i changed preview img to thumbnail img.
-	
-	// Don't use this anymore.
+    if (isset($variables['islandora_full_url'])) {
+        $variables['islandora_content'] = l($variables['islandora_thumbnail_img'], $variables['islandora_full_url'], array('html' => TRUE)); // FIXME note: i changed preview img to thumbnail img.
+    }
+    else {
+        $variables['islandora_content'] = $variables['islandora_thumbnail_img'];
+    }
+	 
+	// Don't use this anymore. - replaced by getAvailabilityByPid.
 	$download_url = 'islandora/object/' . $islandora_object->id . '/datastream/' . $obj_ds . '/download';
     $download_text = t("Download");
     $variables['islandora_download_link'] = l($download_text, $download_url, array('attributes' => array('class' => array('islandora-pdf-link'))));
     $view_text = t("View");
-    $variables['islandora_view_link'] = l($view_text, $full_size_url, array('attributes' => array('class' => array('islandora-pdf-link'))));
+    //$variables['islandora_view_link'] = l($view_text, $full_size_url, array('attributes' => array('class' => array('islandora-pdf-link'))));
   }
 
   // ---- MODS data from Solr ------------

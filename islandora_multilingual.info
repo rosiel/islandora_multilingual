@@ -4,5 +4,3 @@ dependencies[] = islandora
 package = Islandora Customizations
 version = 7.x-1.0
 core = 7.x
-scripts[] = js/ga.js
-scripts[] = js/clickpdfevent.js

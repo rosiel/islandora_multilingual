@@ -65,9 +65,6 @@ function chooseLanguage(&$object, $datastream = 'ds.OBJ-') {
   }
 }
 
-function italics($string) {
-    return '<i>' . $string . '</i>';
-}
 /* 
  * This function, called on post-ingest for objects with CM CEC_multilingual, 
  * assumes that the FedoraObject $object has only one
@@ -76,11 +73,11 @@ function italics($string) {
  * 2013-02-11 now takes two arguments, the second being the datastream, and 
  */
 
-function multilingual_create_multiple_metadatastreams($object, $datastream) {
+function multilingual_create_multiple_mods_datastreams($object, $datastream) {
     if(DEBUG) {
         watchdog('sync', 'create multiple from '.$datastream->id);
     }
- $languages = explode(',', variable_get('islandora_languages', 'EN, '));
+ $languages = explode(',', variable_get('islandora_languages', 'EN,'));
  $dsid_orig = NULL;
  $module_path = drupal_get_path('module', 'islandora_multilingual');
  $dsid_orig = $datastream->id;
@@ -116,35 +113,29 @@ function multilingual_create_multiple_metadatastreams($object, $datastream) {
  * @param FedoraObject $object
  *   The object to synchronize
  *
- * @param Fedora[Datastream?] $datastream
+ * @param Fedora[Datastream?] $master
  *   The "master" datastream, containing the information to push to the others.
+ *   Datastream is marked as "master" by islandora_multilingual_datastream_form_validate.
  */
 function multilingual_synchronize_mods_datastreams(FedoraObject $object, $master) {
     $dsid_orig = $master->id;
     $xml_master = new SimpleXMLElement($master->content);
     $xml_master->registerXPathNamespace("mods", "http://www.loc.gov/mods/v3");
 
-    # Avoid infinite loops by checking for "master" tag. 
+    # Check for "master" tag to avoid infinite loops
     $is_master = $xml_master->xpath("/mods:mods/mods:note[@type='master']");
     if (empty($is_master) or (string) $is_master[0] == 'no') {
-        if (DEBUG) {
-            watchdog('multilingual', 'skipped on account that '.$master->id . ' is not master.');
-        }
         return;
     }
 
     $languages = explode(',', variable_get('islandora_languages', 'EN,'));
-    $languages_to_set = array_diff($languages, array(substr($dsid_orig, -2  )));
+    $master_lang = substr($dsid_orig, -2);
+    $languages_to_set = array_diff($languages, array($master_lang));
     foreach ($languages_to_set as $language) {
         $sheep = $object['MODS-' . $language];
         if (abs(strtotime($master->createdDate) - strtotime($sheep->createdDate)) > 1) {
             multilingual_sync_xml($master, $sheep); # eventually make this a hook? Or break it passing the xml?
             watchdog('multilingual', "synchronized $language from " . $master->id);
-        }
-        else {
-            if (DEBUG) {
-                watchdog('multilingual', 'skipped on account of time diff with '. $sheep->id);
-            }
         }
     }
 }
@@ -170,7 +161,7 @@ function multilingual_sync_xml($ds_master, $ds_sheep) {
     $xpath_s = new DOMXpath($xml_sheep);
     $xpath_s->registerNamespace("mods", "http://www.loc.gov/mods/v3");
 
-    # Mark the synchronized (sheep) datastreams as "not master".
+    # Mark the synchronized (sheep) datastream as "not master".
     $synced = $xpath_s->query('/mods:mods/mods:note[@type="master"]');
     if ($synced->length == 0) {
         $synced = $xml_sheep->createElementNS(MODS, 'note');
@@ -196,6 +187,7 @@ function multilingual_sync_xml($ds_master, $ds_sheep) {
             $label_list_s->item(0)->nodeValue = $label_list_m->item(0)->nodeValue;
         }
     }
+    //------------- THE FOLLOWING SHOULD BE IN A HOOK -----------------
 
     # Remove old personal names and add new personal names.
     $names_list = $xpath_s->query('/mods:mods/mods:name[@type="personal"]');
@@ -234,73 +226,17 @@ function multilingual_sync_xml($ds_master, $ds_sheep) {
         $date_s->nodeValue = $date_list_m->item(0)->nodeValue;
     }
 
-
+    //--------- END OF WHAT SHOULD BE IN A HOOK -------------
 
     $ds_sheep->setContentFromString($xml_sheep->saveXML());
-
-
-
-
-    //==============================================
-    /*
-    $xml_master = new SimpleXMLElement($master->content);
-    $xml_master->registerXPathNamespace("mods", "http://www.loc.gov/mods/v3");
-    $xml_sheep = new SimpleXMLElement($sheep->content);
-    $xml_sheep->registerXPathNamespace("mods", "http://www.loc.gov/mods/v3");
-
-
-    # Sync Label field
-    $label_sheep = $xml_sheep->xpath('/mods:mods/mods:note[@type="label"]');
-    if (empty($label_sheep)) {
-        $label_sheep[] = $xml_sheep->addChild('mods:note');
-        $label_sheep[0]->addAttribute('type', 'label');
-    } 
-    $label = $xml_master->xpath('/mods:mods/mods:note[@type="label"]');
-    $label_sheep[0][0] = (string) $label[0];
-
-
-    # Sync date field
-    $date_sheep = $xml_sheep->xpath('/mods:mods/mods:originInfo/mods:dateIssued[@keyDate="yes"]');
-    if (empty($date_sheep)) {
-        $origin_sheep = $xml_sheep->xpath('/mods:mods/mods:originInfo');
-        if (empty($origin_sheep)) {
-            $origin_sheep = $xml_sheep->addChild('mods:originInfo');
-        } 
-        else {
-            $origin_sheep = $origin_sheep[0];
-        }
-        $date_sheep = $origin_sheep->addChild('mods:dateIssued');
-        $date_sheep->addAttribute('keyDate', 'yes');
-    }
-    else {
-        $date_sheep = $date_sheep[0];
-    }
-    $date = $xml_master->xpath('/mods:mods/mods:originInfo/mods:dateIssued[@keyDate="yes"]');
-    $date_sheep[0] = (string) $date[0];
-
-    #
-    # Sync keywords
-    # Sync authors
-    $authors_master = $xml_master->xpath('/mods:mods/mods:name[@type="personal"]');
-    $authors_sheep = $xml_sheep->xpath('/mods:mods/mods:name[@type="personal"]');
-    $counter = 0;
-    foreach ($authors_master as $author) {
-        $a = 1;
-    }
-     */
-
-    #
-    # Sync document type
-    #
-    # Save sheep xml as datastream.
-    # $ds_sheep->setContentFromString($xml_sheep->asXML());
 }
     
 /**
  * Creates all the derivatives for this content model type
+ * (copied from islandora_pdf solution pack)
  *
  * @param FedoraObject $object
- *   The object to generate/add the deriviative datastreams to.
+ *   The object to generate/add the derivative datastreams to.
  *
  * @return boolean
  *   TRUE if all derivatives were created successfully, FALSE otherwise.
@@ -321,9 +257,10 @@ function islandora_multilingual_create_all_derivatives(FedoraObject $object, $ds
 
 /**
  * Gets the source of all derivatives as an unmanaged file, deletion of the file is left to the caller.
+ * (copied from islandora_pdf solution pack)
  *
  * @param FedoraObject $object
- *   The object to generate/add the deriviative datastreams to.
+ *   The object to generate/add the derivative datastreams to.
  * @param string $dsid
  *   The datastream to use as the source of the derivatives
  *
@@ -340,10 +277,11 @@ function islandora_multilingual_get_derivative_source_as_unmanaged_file(FedoraOb
 }
 
 /**
- * Creates a JPG deriviative for the TN datastream.
+ * Creates a JPG derivative for the TN datastream.
+ * (copied from islandora_pdf solution pack)
  *
  * @param FedoraObject $object
- *   The object to add the deriviative datastreams to.
+ *   The object to add the derivative datastreams to.
  * @param string $file_uri
  *   The URI to the pdf file the derivative will be generated from.
  *
@@ -357,10 +295,11 @@ function islandora_multilingual_add_tn_derivative(FedoraObject $object, $file_ur
 }
 
 /**
- * Ingests a JPG deriviative datastream of the given file.
+ * Ingests a JPG derivative datastream of the given file.
+ * (copied from islandora_pdf solution pack)
  *
  * @param FedoraObject $object
- *   The object to add the deriviative datastreams to.
+ *   The object to add the derivative datastreams to.
  * @param string $file_uri
  *   The URI to the pdf file the derivative will be generated from.
  * @param string $dsid
@@ -388,6 +327,7 @@ function islandora_multilingual_add_jpg_derivative(FedoraObject $object, $file_u
 
 /**
  * Creates a jpg derivative from the given pdf file using imagemagick.
+ * (copied from islandora_pdf solution pack)
  *
  * @param string $file_uri
  *   The URI to the pdf file the derivative will be generated from.
@@ -484,7 +424,7 @@ function getSolrDocByPid($pid) {
     $solr_query = 'PID:' . $pid;
     $results = $solr->search($solr_query, 0, 1);
   } catch (Exception $e) {
-    watchdog('rosie', check_plain(t('Object not in Solr index.')) . ' ' . $e->getMessage());
+    watchdog('multilingual', check_plain(t('Object not in Solr index.')) . ' ' . $e->getMessage());
   }
 
   unset($solr);
@@ -533,6 +473,12 @@ function getAvailabilityByPid($pid) {
           }
       }
   }
+
+  // Test for permissions. 
+  foreach ($languages as $lang_code) {
+      $a = 2;      
+  }
+  
   foreach ($languages as $lang_code) {
       if (!isset($predefined[$lang_code])) {
           continue;
