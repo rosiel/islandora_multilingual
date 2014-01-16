@@ -178,43 +178,4 @@ function islandora_multilingual_datastream_form_validate(array &$form, array &$f
     }
 }
 
-/**
- * Implements hook_xml_form_builder_get_transforms().
- *
- * Grabs any XSLTs from the "transforms" subdirectory.
- */
-function islandora_multilingual_xml_form_builder_get_transforms() {
-  $p = drupal_get_path('module', 'islandora_multilingual');
-  $transforms = array();
-  $include_path = "$p/transforms";
-  $dir = opendir($include_path);
-  if ($dir !== FALSE) {
-    while (($file = readdir($dir)) !== FALSE) {
-      if (preg_match('/\.xslt?$/', $file)) {
-        $transforms["$file"] = "$include_path/$file";
-      }
-    }
-  }
-  closedir($dir);
-  return $transforms;
-}
 
-/* Implements hook_xml_form_builder_get_self_transforms
- *
- * Grabs any XSLTs from the "self_transforms" subdirectory.
- */
-function islandora_multilingual_xml_form_builder_get_self_transforms() {
-  $p = drupal_get_path('module', 'islandora_multilingual');
-  $transforms = array();
-  $include_path = "$p/self_transforms";
-  $dir = opendir($include_path);
-  if ($dir !== FALSE) {
-    while (($file = readdir($dir)) !== FALSE) {
-      if (preg_match('/\.xslt?$/', $file)) {
-        $transforms["$file"] = "$include_path/$file";
-      }
-    }
-  }
-  closedir($dir);
-  return $transforms;
-}

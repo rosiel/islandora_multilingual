@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<content_model xmlns="http://www.islandora.ca" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="" xsi:schemaLocation="http://www.islandora.ca http://localhost/islandoracm.xsd">
+  <mimetypes>
+    <type>application/pdf</type>
+  </mimetypes>
+  <datastreams>
+    <datastream dsid="TN-EN">
+      <display_method class="PDFManipulation" file="pdf_sp.inc" method="showPDFPreview" module="triple_pdf_sp"/>
+    </datastream>
+    <datastream dsid="TN-ES">
+      <display_method class="PDFManipulation" file="pdf_sp.inc" method="showPDFPreview" module="triple_pdf_sp"/>
+    </datastream>
+    <datastream dsid="TN-FR">
+      <display_method class="PDFManipulation" file="pdf_sp.inc" method="showPDFPreview" module="triple_pdf_sp"/>
+    </datastream>
+    <datastream dsid="OBJ-EN">
+      <add_datastream_method class="PDFManipulation" dsid="TN-EN" file="pdf_sp.inc" method="createThumbnailFromPDF" modified_files_ext="jpg" module="triple_pdf_sp">
+        <parameters>
+          <parameter name="width">100</parameter>
+          <parameter name="height">120</parameter>
+        </parameters>
+      </add_datastream_method>
+    </datastream>
+    <datastream dsid="OBJ-ES">
+      <add_datastream_method class="PDFManipulation" dsid="TN-ES" file="pdf_sp.inc" method="createThumbnailFromPDF" modified_files_ext="jpg" module="triple_pdf_sp">
+        <parameters>
+          <parameter name="width">100</parameter>
+          <parameter name="height">120</parameter>
+        </parameters>
+      </add_datastream_method>
+    </datastream>
+    <datastream dsid="OBJ-FR">
+      <add_datastream_method class="PDFManipulation" dsid="TN" file="pdf_sp.inc" method="createThumbnailFromPDF" modified_files_ext="jpg" module="triple_pdf_sp">
+        <parameters>
+          <parameter name="width">100</parameter>
+          <parameter name="height">120</parameter>
+        </parameters>
+      </add_datastream_method>
+    </datastream>
+  </datastreams>
+</content_model>
